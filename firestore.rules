@@ -1,0 +1,113 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to get user's company_id
+    function getUserCompanyId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.company_id;
+    }
+    
+    // Helper function to check if user owns the company
+    function isCompanyOwner(companyId) {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/companies/$(companyId)).data.owner_id == request.auth.uid;
+    }
+    
+    // Helper function to check if document belongs to user's company
+    function belongsToUserCompany() {
+      return isAuthenticated() && 
+             resource.data.company_id == getUserCompanyId();
+    }
+    
+    // Helper function to check if new document has correct company_id
+    function hasCorrectCompanyId() {
+      return request.resource.data.company_id == getUserCompanyId();
+    }
+    
+    // Companies collection
+    match /companies/{companyId} {
+      // Users can read their own company
+      allow read: if isAuthenticated() && getUserCompanyId() == companyId;
+      
+      // Only company owner can update
+      allow update: if isCompanyOwner(companyId);
+      
+      // Anyone authenticated can create a company (for registration)
+      allow create: if isAuthenticated();
+      
+      // No deletion allowed
+      allow delete: if false;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Users can read their own document
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Users can update their own document (except company_id and role)
+      allow update: if isAuthenticated() && 
+                       request.auth.uid == userId &&
+                       request.resource.data.company_id == resource.data.company_id &&
+                       request.resource.data.role == resource.data.role;
+      
+      // System creates user document (via client after auth)
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      
+      // No deletion
+      allow delete: if false;
+    }
+    
+    // Customers collection
+    match /customers/{customerId} {
+      allow read: if belongsToUserCompany();
+      allow create: if isAuthenticated() && hasCorrectCompanyId();
+      allow update: if belongsToUserCompany() && hasCorrectCompanyId();
+      allow delete: if belongsToUserCompany();
+    }
+    
+    // Items collection
+    match /items/{itemId} {
+      allow read: if belongsToUserCompany();
+      allow create: if isAuthenticated() && hasCorrectCompanyId();
+      allow update: if belongsToUserCompany() && hasCorrectCompanyId();
+      allow delete: if belongsToUserCompany();
+    }
+    
+    // Sales collection
+    match /sales/{saleId} {
+      allow read: if belongsToUserCompany();
+      allow create: if isAuthenticated() && hasCorrectCompanyId();
+      allow update: if belongsToUserCompany() && hasCorrectCompanyId();
+      allow delete: if belongsToUserCompany();
+    }
+    
+    // Purchases collection
+    match /purchases/{purchaseId} {
+      allow read: if belongsToUserCompany();
+      allow create: if isAuthenticated() && hasCorrectCompanyId();
+      allow update: if belongsToUserCompany() && hasCorrectCompanyId();
+      allow delete: if belongsToUserCompany();
+    }
+    
+    // Payments collection
+    match /payments/{paymentId} {
+      allow read: if belongsToUserCompany();
+      allow create: if isAuthenticated() && hasCorrectCompanyId();
+      allow update: if belongsToUserCompany() && hasCorrectCompanyId();
+      allow delete: if belongsToUserCompany();
+    }
+    
+    // Expenses collection
+    match /expenses/{expenseId} {
+      allow read: if belongsToUserCompany();
+      allow create: if isAuthenticated() && hasCorrectCompanyId();
+      allow update: if belongsToUserCompany() && hasCorrectCompanyId();
+      allow delete: if belongsToUserCompany();
+    }
+  }
+}
