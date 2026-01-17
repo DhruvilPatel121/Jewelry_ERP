@@ -1,91 +1,242 @@
-# Welcome to Your Miaoda Project
+# Jewelry ERP - Complete Accounting System
 
-## Project Info
+A comprehensive, production-ready Progressive Web App (PWA) for jewelry business accounting and ERP management built with React, TypeScript, and Supabase.
 
-## Project Directory
+## 🌟 Features
+
+### Core Functionality
+- **Customer Management**: Complete customer ledger with opening/closing balances for both amount and fine (gold weight)
+- **Sales & Purchases**: Full transaction management with automatic calculations for weight, fine, and amounts
+- **Payment & Receipt**: Multiple payment types (Cash, Bank, Fine, Rate Cut, Roopu) with automatic balance updates
+- **Items Management**: CRUD operations for jewelry items catalog
+- **Expenses Tracking**: Record and manage business expenses
+- **Cash & Bank**: Real-time tracking of cash in hand and bank balances
+
+### Reports & Analytics
+- **Dashboard**: Visual analytics with charts showing sales vs purchases trends
+- **Sale Report**: Filterable sales transactions with date range and customer filters
+- **Purchase Report**: Comprehensive purchase history with filters
+- **Day Book**: Complete daily transaction summary across all transaction types
+- **Export Ready**: UI prepared for PDF and Excel export functionality
+
+### User Experience
+- **Mobile-First Design**: Optimized for mobile devices with bottom navigation
+- **PWA Support**: Installable app with offline capabilities
+- **Professional UI**: Accounting-style interface with clean, modern design
+- **Real-time Calculations**: Automatic calculation of fine, ghat, and amounts
+- **Dark Mode**: Full dark mode support
+
+## 🎨 Design System
+
+### Color Scheme
+- **Primary (Deep Blue)**: Trust & Professionalism - `hsl(217, 91%, 35%)`
+- **Secondary (Teal)**: Money & Growth - `hsl(174, 62%, 47%)`
+- **Accent (Gold)**: Jewelry & Luxury - `hsl(43, 96%, 56%)`
+- **Success (Green)**: Profit & Positive Balance - `hsl(142, 71%, 45%)`
+- **Warning (Orange)**: Alerts - `hsl(38, 92%, 50%)`
+- **Destructive (Red)**: Loss & Negative Balance - `hsl(0, 84%, 60%)`
+
+## 🛠️ Technology Stack
+
+### Frontend
+- **React 18** with TypeScript
+- **Vite** for fast development and building
+- **Tailwind CSS** for styling
+- **shadcn/ui** for UI components
+- **React Hook Form** + **Zod** for form validation
+- **Recharts** for data visualization
+- **React Router** for navigation
+- **Lucide Icons** for iconography
+
+### Backend
+- **Supabase** (Free Tier)
+  - PostgreSQL Database
+  - Authentication (Username/Password)
+  - Row Level Security (RLS)
+  - Real-time capabilities
+
+### PWA Features
+- Service Worker for offline support
+- Web App Manifest
+- Installable on mobile devices
+- Offline-first architecture
+
+## 📊 Database Schema
+
+### Tables
+1. **profiles** - User profiles with role-based access
+2. **customers** - Customer information with opening/closing balances
+3. **items** - Jewelry items catalog
+4. **sales** - Sales transactions with automatic calculations
+5. **purchases** - Purchase transactions
+6. **payments** - Payment and receipt transactions
+7. **expenses** - Business expenses
+8. **company_settings** - Company information
+
+### Calculation Logic
+
+#### Sales/Purchase Calculations
+```
+Total Ghat = (Net Weight × Ghat per KG) / 1000
+Fine = (Net Weight + Total Ghat) × (Touch + Wastage) / 100
+Amount = (Net Weight × Rate) / 1000 OR Pics × Rate
+Closing Amount = Opening Amount + Amount
+Closing Fine = Opening Fine + Fine
+```
+
+#### Payment Calculations
+```
+Fine = Gross × Purity / 100
+Rate Cut Fine = (Fine × Rate) / 1000
+Closing Amount = Opening Amount ± Amount (based on payment/receipt)
+Closing Fine = Opening Fine ± Fine (based on payment/receipt)
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 18+ installed
+- pnpm package manager
+
+### Installation
+
+1. Clone the repository
+```bash
+git clone <repository-url>
+cd app-8zur1sisfyf5
+```
+
+2. Install dependencies
+```bash
+pnpm install
+```
+
+3. Environment Setup
+The Supabase credentials are already configured in the `.env` file:
+- Supabase URL: `https://uhssbgfecgakimtkdikg.supabase.co`
+- Supabase Anon Key: Already configured
+
+4. Run the development server
+```bash
+pnpm dev
+```
+
+5. Build for production
+```bash
+pnpm build
+```
+
+## 📱 Usage Guide
+
+### First Time Setup
+
+1. **Register**: Create your account (first user becomes admin)
+2. **Company Settings**: Set up your company information
+3. **Add Items**: Create your jewelry items catalog
+4. **Add Customers**: Add customer details with opening balances
+
+### Daily Operations
+
+1. **Record Sales**: Use "Add Sale" to record customer purchases
+2. **Record Purchases**: Track inventory purchases from suppliers
+3. **Payments/Receipts**: Record all payment transactions
+4. **Track Expenses**: Log business expenses
+
+### Reports & Analytics
+
+1. **Dashboard**: View overall business performance
+2. **Reports**: Generate filtered reports by date range and customer
+3. **Day Book**: Review all daily transactions
+
+## 🔐 Authentication & Security
+
+- Username/password authentication via Supabase Auth
+- Row Level Security (RLS) ensures data isolation per user
+- First registered user automatically becomes admin
+- Secure password hashing and session management
+
+## 📦 Project Structure
 
 ```
-├── README.md # Documentation
-├── components.json # Component library configuration
-├── index.html # Entry file
-├── package.json # Package management
-├── postcss.config.js # PostCSS configuration
-├── public # Static resources directory
-│   ├── favicon.png # Icon
-│   └── images # Image resources
-├── src # Source code directory
-│   ├── App.tsx # Entry file
-│   ├── components # Components directory
-│   ├── context # Context directory
-│   ├── db # Database configuration directory
-│   ├── hooks # Common hooks directory
-│   ├── index.css # Global styles
-│   ├── layout # Layout directory
-│   ├── lib # Utility library directory
-│   ├── main.tsx # Entry file
-│   ├── routes.tsx # Routing configuration
-│   ├── pages # Pages directory
-│   ├── services # Database interaction directory
-│   ├── types # Type definitions directory
-├── tsconfig.app.json # TypeScript frontend configuration file
-├── tsconfig.json # TypeScript configuration file
-├── tsconfig.node.json # TypeScript Node.js configuration file
-└── vite.config.ts # Vite configuration file
+src/
+├── components/
+│   ├── layouts/          # Main layout with bottom navigation
+│   ├── ui/               # shadcn/ui components
+│   └── common/           # Shared components
+├── contexts/             # React contexts (Auth)
+├── db/
+│   ├── api.ts           # Database API layer
+│   └── supabase.ts      # Supabase client
+├── pages/               # All application pages
+├── types/               # TypeScript type definitions
+├── hooks/               # Custom React hooks
+└── lib/                 # Utility functions
 ```
 
-## Tech Stack
+## 🎯 Key Features Implementation
 
-Vite, TypeScript, React, Supabase
+### Real-time Calculations
+All financial calculations are performed in real-time as users input data, with automatic updates to customer balances.
 
-## Development Guidelines
+### Customer Balance Tracking
+- Dual balance system: Amount (₹) and Fine (grams)
+- Automatic updates on every transaction
+- Opening and closing balance management
+- DR/CR indicator for positive/negative balances
 
-### How to edit code locally?
+### Transaction Management
+- Auto-generated invoice numbers
+- Date-based filtering
+- Customer-wise transaction history
+- Complete audit trail
 
-You can choose [VSCode](https://code.visualstudio.com/Download) or any IDE you prefer. The only requirement is to have Node.js and npm installed.
+### Responsive Design
+- Mobile-first approach
+- Bottom navigation for easy thumb access
+- Optimized for various screen sizes
+- Touch-friendly interface
 
-### Environment Requirements
+## 🌐 PWA Features
 
-```
-# Node.js ≥ 20
-# npm ≥ 10
-Example:
-# node -v   # v20.18.3
-# npm -v    # 10.8.2
-```
+### Offline Support
+- Service worker caches essential resources
+- Offline-first data strategy
+- Background sync when connection restored
 
-### Installing Node.js on Windows
+### Installation
+- Add to Home Screen on mobile devices
+- Standalone app experience
+- Custom splash screen
+- Theme color integration
 
-```
-# Step 1: Visit the Node.js official website: https://nodejs.org/, click download. The website will automatically suggest a suitable version (32-bit or 64-bit) for your system.
-# Step 2: Run the installer: Double-click the downloaded installer to run it.
-# Step 3: Complete the installation: Follow the installation wizard to complete the process.
-# Step 4: Verify installation: Open Command Prompt (cmd) or your IDE terminal, and type `node -v` and `npm -v` to check if Node.js and npm are installed correctly.
-```
+## 💰 Cost
 
-### Installing Node.js on macOS
+**100% FREE** - Uses only free tier services:
+- Supabase Free Tier
+- No paid APIs
+- No credit card required
+- Zero running costs
 
-```
-# Step 1: Using Homebrew (Recommended method): Open Terminal. Type the command `brew install node` and press Enter. If Homebrew is not installed, you need to install it first by running the following command in Terminal:
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-Alternatively, use the official installer: Visit the Node.js official website. Download the macOS .pkg installer. Open the downloaded .pkg file and follow the prompts to complete the installation.
-# Step 2: Verify installation: Open Command Prompt (cmd) or your IDE terminal, and type `node -v` and `npm -v` to check if Node.js and npm are installed correctly.
-```
+## 🔄 Future Enhancements
 
-### After installation, follow these steps:
+- PDF/Excel export functionality
+- Multi-company support
+- Advanced reporting with custom date ranges
+- Inventory management
+- Barcode scanning
+- SMS/Email notifications
+- Backup and restore functionality
 
-```
-# Step 1: Download the code package
-# Step 2: Extract the code package
-# Step 3: Open the code package with your IDE and navigate into the code directory
-# Step 4: In the IDE terminal, run the command to install dependencies: npm i
-# Step 5: In the IDE terminal, run the command to start the development server: npm run dev -- --host 127.0.0.1
-# Step 6: if step 5 failed, try this command to start the development server: npx vite --host 127.0.0.1
-```
+## 📝 License
 
-### How to develop backend services?
+This project is built for jewelry business accounting and ERP management.
 
-Configure environment variables and install relevant dependencies.If you need to use a database, please use the official version of Supabase.
+## 🤝 Support
 
-## Learn More
+For issues or questions, please refer to the documentation or contact support.
 
-You can also check the help documentation: Download and Building the app（ [https://intl.cloud.baidu.com/en/doc/MIAODA/s/download-and-building-the-app-en](https://intl.cloud.baidu.com/en/doc/MIAODA/s/download-and-building-the-app-en)）to learn more detailed content.
+---
+
+**Built with ❤️ for Jewelry Businesses**
+
+© 2026 Jewelry ERP - All Rights Reserved
