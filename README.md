@@ -1,6 +1,7 @@
-# Welcome to Your Miaoda Project
-Miaoda Application Link URL
-    URL:https://medo.dev/projects/app-8zur1sisfyf5
+# Welcome to Your Dhruvil's Project
+
+Dhruvil's Application Link URL
+URL:https://jewelry-erp-92f81.web.app
 
 # Jewelry ERP - Complete Accounting System
 
@@ -9,6 +10,7 @@ A comprehensive, production-ready Progressive Web App (PWA) for jewelry business
 ## 🌟 Features
 
 ### Core Functionality
+
 - **Customer Management**: Complete customer ledger with opening/closing balances for both amount and fine (gold weight)
 - **Sales & Purchases**: Full transaction management with automatic calculations for weight, fine, and amounts
 - **Payment & Receipt**: Multiple payment types (Cash, Bank, Fine, Rate Cut, Roopu) with automatic balance updates
@@ -17,6 +19,7 @@ A comprehensive, production-ready Progressive Web App (PWA) for jewelry business
 - **Cash & Bank**: Real-time tracking of cash in hand and bank balances
 
 ### Reports & Analytics
+
 - **Dashboard**: Visual analytics with charts showing sales vs purchases trends
 - **Sale Report**: Filterable sales transactions with date range and customer filters
 - **Purchase Report**: Comprehensive purchase history with filters
@@ -24,6 +27,7 @@ A comprehensive, production-ready Progressive Web App (PWA) for jewelry business
 - **Export Ready**: UI prepared for PDF and Excel export functionality
 
 ### User Experience
+
 - **Mobile-First Design**: Optimized for mobile devices with bottom navigation
 - **PWA Support**: Installable app with offline capabilities
 - **Professional UI**: Accounting-style interface with clean, modern design
@@ -33,6 +37,7 @@ A comprehensive, production-ready Progressive Web App (PWA) for jewelry business
 ## 🎨 Design System
 
 ### Color Scheme
+
 - **Primary (Deep Blue)**: Trust & Professionalism - `hsl(217, 91%, 35%)`
 - **Secondary (Teal)**: Money & Growth - `hsl(174, 62%, 47%)`
 - **Accent (Gold)**: Jewelry & Luxury - `hsl(43, 96%, 56%)`
@@ -43,6 +48,7 @@ A comprehensive, production-ready Progressive Web App (PWA) for jewelry business
 ## 🛠️ Technology Stack
 
 ### Frontend
+
 - **React 18** with TypeScript
 - **Vite** for fast development and building
 - **Tailwind CSS** for styling
@@ -53,6 +59,7 @@ A comprehensive, production-ready Progressive Web App (PWA) for jewelry business
 - **Lucide Icons** for iconography
 
 ### Backend
+
 - **Supabase** (Free Tier)
   - PostgreSQL Database
   - Authentication (Username/Password)
@@ -60,6 +67,7 @@ A comprehensive, production-ready Progressive Web App (PWA) for jewelry business
   - Real-time capabilities
 
 ### PWA Features
+
 - Service Worker for offline support
 - Web App Manifest
 - Installable on mobile devices
@@ -68,6 +76,7 @@ A comprehensive, production-ready Progressive Web App (PWA) for jewelry business
 ## 📊 Database Schema
 
 ### Tables
+
 1. **profiles** - User profiles with role-based access
 2. **customers** - Customer information with opening/closing balances
 3. **items** - Jewelry items catalog
@@ -80,6 +89,7 @@ A comprehensive, production-ready Progressive Web App (PWA) for jewelry business
 ### Calculation Logic
 
 #### Sales/Purchase Calculations
+
 ```
 Total Ghat = (Net Weight × Ghat per KG) / 1000
 Fine = (Net Weight + Total Ghat) × (Touch + Wastage) / 100
@@ -89,6 +99,7 @@ Closing Fine = Opening Fine + Fine
 ```
 
 #### Payment Calculations
+
 ```
 Fine = Gross × Purity / 100
 Rate Cut Fine = (Fine × Rate) / 1000
@@ -99,33 +110,39 @@ Closing Fine = Opening Fine ± Fine (based on payment/receipt)
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 18+ installed
 - pnpm package manager
 
 ### Installation
 
 1. Clone the repository
+
 ```bash
 git clone <repository-url>
 cd app-8zur1sisfyf5
 ```
 
 2. Install dependencies
+
 ```bash
 pnpm install
 ```
 
 3. Environment Setup
-The Supabase credentials are already configured in the `.env` file:
+   The Supabase credentials are already configured in the `.env` file:
+
 - Supabase URL: `https://uhssbgfecgakimtkdikg.supabase.co`
 - Supabase Anon Key: Already configured
 
 4. Run the development server
+
 ```bash
 pnpm dev
 ```
 
 5. Build for production
+
 ```bash
 pnpm build
 ```
@@ -180,21 +197,25 @@ src/
 ## 🎯 Key Features Implementation
 
 ### Real-time Calculations
+
 All financial calculations are performed in real-time as users input data, with automatic updates to customer balances.
 
 ### Customer Balance Tracking
+
 - Dual balance system: Amount (₹) and Fine (grams)
 - Automatic updates on every transaction
 - Opening and closing balance management
 - DR/CR indicator for positive/negative balances
 
 ### Transaction Management
+
 - Auto-generated invoice numbers
 - Date-based filtering
 - Customer-wise transaction history
 - Complete audit trail
 
 ### Responsive Design
+
 - Mobile-first approach
 - Bottom navigation for easy thumb access
 - Optimized for various screen sizes
@@ -203,11 +224,13 @@ All financial calculations are performed in real-time as users input data, with 
 ## 🌐 PWA Features
 
 ### Offline Support
+
 - Service worker caches essential resources
 - Offline-first data strategy
 - Background sync when connection restored
 
 ### Installation
+
 - Add to Home Screen on mobile devices
 - Standalone app experience
 - Custom splash screen
@@ -216,6 +239,7 @@ All financial calculations are performed in real-time as users input data, with 
 ## 💰 Cost
 
 **100% FREE** - Uses only free tier services:
+
 - Supabase Free Tier
 - No paid APIs
 - No credit card required
@@ -241,6 +265,6 @@ For issues or questions, please refer to the documentation or contact support.
 
 ---
 
-**Built with ❤️ for Jewelry Businesses**
+**Built with ❤️ for Jewelry Businesses By Dhruvil**
 
-© 2026 Jewelry ERP - All Rights Reserved
+© 2026 Dhruvil's Jewelry ERP - All Rights Reserved
