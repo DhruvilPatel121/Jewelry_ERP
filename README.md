@@ -1,3 +1,7 @@
+# Welcome to Your Miaoda Project
+Miaoda Application Link URL
+    URL:https://medo.dev/projects/app-8zur1sisfyf5
+
 # Jewelry ERP - Complete Accounting System
 
 A comprehensive, production-ready Progressive Web App (PWA) for jewelry business accounting and ERP management built with React, TypeScript, and Supabase.

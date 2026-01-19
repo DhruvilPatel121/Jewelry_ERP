@@ -2,3 +2,11 @@ catalog:
   '@react-three/drei': 9.122.0
   '@react-three/fiber': 8.18.0
   three: 0.180.0
+
+onlyBuiltDependencies:
+  - '@firebase/util'
+  - esbuild
+  - protobufjs
+
+overrides:
+  dataconnect-generated: link:C:/Users/HP/AppData/Local/pnpm/global/5/node_modules/src/dataconnect-generated

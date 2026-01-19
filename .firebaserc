@@ -1,25 +1,5 @@
-# Firebase
-.firebase/
-.firebaserc
-firebase-debug.log
-firestore-debug.log
-
-# Environment
-.env
-.env.local
-.env.production
-
-# Build
-dist/
-build/
-
-# Dependencies
-node_modules/
-
-# IDE
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
+{
+  "projects": {
+    "default": "jewelry-erp-92f81"
+  }
+}
