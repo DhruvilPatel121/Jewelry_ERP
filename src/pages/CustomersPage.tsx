@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { customersApi } from '@/db/api';
 import type { Customer } from '@/types';
-import { Plus, Search, Users, ChevronRight } from 'lucide-react';
+import { Plus, Search, Users, ChevronRight, Trash } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function CustomersPage() {
   const navigate = useNavigate();
@@ -51,6 +52,21 @@ export default function CustomersPage() {
 
   const formatFine = (fine: number) => {
     return `${fine.toFixed(3)}g`;
+  };
+  
+  const handleDelete = async (customer: Customer, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const confirmed = window.confirm(`Delete ${customer.name}? This will remove all data.`);
+    if (!confirmed) return;
+    try {
+      await customersApi.delete(customer.id);
+      toast.success('Customer deleted');
+      setCustomers(prev => prev.filter(c => c.id !== customer.id));
+      setFilteredCustomers(prev => prev.filter(c => c.id !== customer.id));
+    } catch (error) {
+      console.error('Failed to delete customer:', error);
+      toast.error('Failed to delete customer');
+    }
   };
 
   return (
@@ -149,6 +165,14 @@ export default function CustomersPage() {
                     </div>
                   </div>
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="ml-2"
+                    onClick={(e) => handleDelete(customer, e)}
+                  >
+                    <Trash className="h-4 w-4 text-destructive" />
+                  </Button>
                 </button>
               ))}
             </div>

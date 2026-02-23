@@ -1,0 +1,117 @@
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { expensesApi, companyApi } from "@/db/api";
+import type { Expense, CompanySettings } from "@/types";
+import { Button } from "@/components/ui/button";
+import { downloadElementAsPdf, ensurePdfLibsLoaded } from "@/utils/pdf";
+import { supabase } from "@/db/supabase";
+
+export default function ExpenseInvoicePage() {
+  const { id } = useParams<{ id: string }>();
+  const [expense, setExpense] = useState<Expense | null>(null);
+  const [company, setCompany] = useState<CompanySettings | null>(null);
+  const [autoDownloaded, setAutoDownloaded] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!id) return;
+      const { data } = await supabase
+        .from("expenses")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      setExpense(data || null);
+      const co = await companyApi.get();
+      setCompany(co);
+    };
+    load();
+  }, [id]);
+
+  useEffect(() => {
+    const download = async () => {
+      if (expense && !autoDownloaded) {
+        await ensurePdfLibsLoaded();
+        const el = document.getElementById("invoice-root");
+        if (el) {
+          await downloadElementAsPdf(el, `Expense_${expense.id}.pdf`);
+          setAutoDownloaded(true);
+          setTimeout(() => window.close(), 200);
+        }
+      }
+    };
+    download();
+  }, [expense, autoDownloaded]);
+
+  const downloadPdf = async () => {
+    await ensurePdfLibsLoaded();
+    const el = document.getElementById("invoice-root");
+    if (el) {
+      await downloadElementAsPdf(el, `Expense_${expense?.id}.pdf`);
+    }
+  };
+  if (!expense) return <div className="p-6">Loading...</div>;
+
+  return (
+    <div className="p-6 print:p-0">
+      <div className="flex justify-between items-center mb-4 print:hidden">
+        <h1 className="text-xl font-bold">Expense</h1>
+        <Button onClick={downloadPdf}>Download PDF</Button>
+      </div>
+      <div
+        id="invoice-root"
+        className="max-w-4xl mx-auto bg-white text-black p-6 border"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {company?.logo_url && (
+              <img
+                src={company.logo_url}
+                alt="Logo"
+                className="h-12 w-12 object-contain"
+              />
+            )}
+            <div>
+              <h2 className="text-2xl font-bold">
+                {company?.company_name || "Company"}
+              </h2>
+              {company?.address && <p className="text-sm">{company.address}</p>}
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-sm">
+              <span className="font-semibold">Date:</span> {expense.date}
+            </p>
+          </div>
+        </div>
+
+        <table className="w-full mt-4 border-collapse text-sm">
+          <thead>
+            <tr className="border">
+              <th className="border p-2">Category</th>
+              <th className="border p-2">Description</th>
+              <th className="border p-2">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border">
+              <td className="border p-2">{expense.category}</td>
+              <td className="border p-2">{expense.description || ""}</td>
+              <td className="border p-2">
+                ₹
+                {(expense.amount || 0).toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div className="mt-6 text-right text-sm">
+          <p>Printed on {new Date().toLocaleString("en-IN")}</p>
+          <p className="mt-2">For, {company?.company_name || "Company"}</p>
+        </div>
+      </div>
+    </div>
+  );
+}

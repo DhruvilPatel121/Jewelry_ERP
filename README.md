@@ -1,7 +1,6 @@
 # Welcome to Your Dhruvil's Project
 
-Dhruvil's Application Link URL
-URL:https://jewelry-erp-92f81.web.app
+Dhruvil's Application Link URL : https://jewelry-erp-92f81.web.app
 
 # Jewelry ERP - Complete Accounting System
 

@@ -45,6 +45,54 @@ export const customersApi = {
     if (error) throw error;
     return Array.isArray(data) ? data : [];
   },
+  async recalculateBalances(customerId: string): Promise<void> {
+    const customer = await this.getById(customerId);
+    if (!customer) throw new Error('Customer not found');
+    const { data: sales } = await supabase
+      .from('sales')
+      .select('amount,fine')
+      .eq('customer_id', customerId);
+    const { data: purchases } = await supabase
+      .from('purchases')
+      .select('amount,fine')
+      .eq('customer_id', customerId);
+    const { data: payments } = await supabase
+      .from('payments')
+      .select('amount,fine,transaction_type')
+      .eq('customer_id', customerId);
+    const openingAmount = customer.opening_amount || 0;
+    const openingFine = customer.opening_fine || 0;
+    const salesAmount = (Array.isArray(sales) ? sales : []).reduce((s, r) => s + (r.amount || 0), 0);
+    const salesFine = (Array.isArray(sales) ? sales : []).reduce((s, r) => s + (r.fine || 0), 0);
+    const purchasesAmount = (Array.isArray(purchases) ? purchases : []).reduce((s, r) => s + (r.amount || 0), 0);
+    const purchasesFine = (Array.isArray(purchases) ? purchases : []).reduce((s, r) => s + (r.fine || 0), 0);
+    const paymentsData = Array.isArray(payments) ? payments : [];
+    const paymentsAmount = paymentsData.reduce(
+      (s, r) => s + ((r.transaction_type === 'receipt' ? 1 : -1) * (r.amount || 0)),
+      0
+    );
+    const paymentsFine = paymentsData.reduce(
+      (s, r) => s + ((r.transaction_type === 'receipt' ? 1 : -1) * (r.fine || 0)),
+      0
+    );
+    const closingAmount = openingAmount + salesAmount - purchasesAmount + paymentsAmount;
+    const closingFine = openingFine + salesFine - purchasesFine + paymentsFine;
+    const { error } = await supabase
+      .from('customers')
+      .update({
+        closing_amount: closingAmount,
+        closing_fine: closingFine,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', customerId);
+    if (error) throw error;
+  },
+  async recalculateAll(): Promise<void> {
+    const customers = await this.getAll();
+    for (const c of customers) {
+      await this.recalculateBalances(c.id);
+    }
+  },
 
   async getById(id: string): Promise<Customer | null> {
     const { data, error } = await supabase
@@ -87,27 +135,13 @@ export const customersApi = {
   },
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('customers')
-      .delete()
-      .eq('id', id);
-    
-    if (error) throw error;
-  },
-
-  async updateBalances(customerId: string, amountDelta: number, fineDelta: number): Promise<void> {
-    const customer = await this.getById(customerId);
-    if (!customer) throw new Error('Customer not found');
-
-    const { error } = await supabase
-      .from('customers')
-      .update({
-        closing_amount: (customer.closing_amount || 0) + amountDelta,
-        closing_fine: (customer.closing_fine || 0) + fineDelta,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', customerId);
-    
+    const { error: errPay } = await supabase.from('payments').delete().eq('customer_id', id);
+    if (errPay) throw errPay;
+    const { error: errSales } = await supabase.from('sales').delete().eq('customer_id', id);
+    if (errSales) throw errSales;
+    const { error: errPurch } = await supabase.from('purchases').delete().eq('customer_id', id);
+    if (errPurch) throw errPurch;
+    const { error } = await supabase.from('customers').delete().eq('id', id);
     if (error) throw error;
   },
 };
@@ -190,21 +224,32 @@ export const salesApi = {
     if (error) throw error;
     return Array.isArray(data) ? data : [];
   },
+  async getById(id: string): Promise<SaleWithCustomer | null> {
+    const { data, error } = await supabase
+      .from('sales')
+      .select('*, customer:customers(*)')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return data ?? null;
+  },
 
   async create(formData: SaleFormData): Promise<Sale> {
     const userId = await getCurrentUserId();
     const invoiceNo = await generateInvoiceNo('sale');
+    const customer = await customersApi.getById(formData.customer_id);
     
     // Calculate values
-    const netWeight = formData.net_weight || 0;
+    // Prefer derived net weight: total weight - bag
+    const netWeight = (formData.weight || 0) - (formData.bag || 0);
     const ghatPerKg = formData.ghat_per_kg || 0;
     const totalGhat = (netWeight * ghatPerKg) / 1000;
     const touch = formData.touch || 0;
     const wastage = formData.wastage || 0;
     const fine = (netWeight + totalGhat) * (touch + wastage) / 100;
     const rate = formData.rate || 0;
-    const pics = formData.pics || 0;
-    const amount = pics > 0 ? pics * rate : (netWeight * rate) / 1000;
+    // Amount must be based on kilograms, not pics
+    const amount = (netWeight * rate) / 1000;
 
     const { data, error } = await supabase
       .from('sales')
@@ -212,6 +257,7 @@ export const salesApi = {
         user_id: userId,
         invoice_no: invoiceNo,
         ...formData,
+        net_weight: netWeight,
         total_ghat: totalGhat,
         fine,
         amount,
@@ -222,7 +268,51 @@ export const salesApi = {
     if (error) throw error;
 
     // Update customer balances
-    await customersApi.updateBalances(formData.customer_id, amount, fine);
+    await customersApi.recalculateBalances(formData.customer_id);
+
+    return data;
+  },
+
+  async update(id: string, formData: Partial<SaleFormData>): Promise<Sale> {
+    // Fetch existing sale
+    const { data: existing, error: getErr } = await supabase
+      .from('sales')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (getErr) throw getErr;
+    if (!existing) throw new Error('Sale not found');
+
+    // Recalculate values from updated fields merged with existing
+    const weight = (formData.weight ?? existing.weight ?? 0) as number;
+    const bag = (formData.bag ?? existing.bag ?? 0) as number;
+    const netWeight = weight - bag;
+    const ghatPerKg = (formData.ghat_per_kg ?? existing.ghat_per_kg ?? 0) as number;
+    const totalGhat = (netWeight * ghatPerKg) / 1000;
+    const touch = (formData.touch ?? existing.touch ?? 0) as number;
+    const wastage = (formData.wastage ?? existing.wastage ?? 0) as number;
+    const rate = (formData.rate ?? existing.rate ?? 0) as number;
+    const fine = (netWeight + totalGhat) * (touch + wastage) / 100;
+    const amount = (netWeight * rate) / 1000;
+
+    // Update record
+    const { data, error } = await supabase
+      .from('sales')
+      .update({
+        ...formData,
+        net_weight: netWeight,
+        total_ghat: totalGhat,
+        fine,
+        amount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+
+    // Adjust customer balances by delta
+    await customersApi.recalculateBalances(existing.customer_id);
 
     return data;
   },
@@ -235,13 +325,7 @@ export const salesApi = {
       .eq('id', id)
       .maybeSingle();
     
-    if (sale) {
-      await customersApi.updateBalances(
-        sale.customer_id,
-        -(sale.amount || 0),
-        -(sale.fine || 0)
-      );
-    }
+    const customerId = sale?.customer_id;
 
     const { error } = await supabase
       .from('sales')
@@ -249,6 +333,10 @@ export const salesApi = {
       .eq('id', id);
     
     if (error) throw error;
+
+    if (customerId) {
+      await customersApi.recalculateBalances(customerId);
+    }
   },
 
   async getDailySummary(date: string): Promise<{ total: number; count: number }> {
@@ -297,21 +385,30 @@ export const purchasesApi = {
     if (error) throw error;
     return Array.isArray(data) ? data : [];
   },
+  async getById(id: string): Promise<PurchaseWithCustomer | null> {
+    const { data, error } = await supabase
+      .from('purchases')
+      .select('*, customer:customers(*)')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return data ?? null;
+  },
 
   async create(formData: PurchaseFormData): Promise<Purchase> {
     const userId = await getCurrentUserId();
     const invoiceNo = await generateInvoiceNo('purchase');
+    const customer = await customersApi.getById(formData.customer_id);
     
     // Calculate values
-    const netWeight = formData.net_weight || 0;
+    const netWeight = (formData.weight || 0) - (formData.bag || 0);
     const ghatPerKg = formData.ghat_per_kg || 0;
     const totalGhat = (netWeight * ghatPerKg) / 1000;
     const touch = formData.touch || 0;
     const wastage = formData.wastage || 0;
     const fine = (netWeight + totalGhat) * (touch + wastage) / 100;
     const rate = formData.rate || 0;
-    const pics = formData.pics || 0;
-    const amount = pics > 0 ? pics * rate : (netWeight * rate) / 1000;
+    const amount = (netWeight * rate) / 1000;
 
     const { data, error } = await supabase
       .from('purchases')
@@ -319,6 +416,7 @@ export const purchasesApi = {
         user_id: userId,
         invoice_no: invoiceNo,
         ...formData,
+        net_weight: netWeight,
         total_ghat: totalGhat,
         fine,
         amount,
@@ -329,7 +427,47 @@ export const purchasesApi = {
     if (error) throw error;
 
     // Update customer balances (negative for purchases)
-    await customersApi.updateBalances(formData.customer_id, -amount, -fine);
+    await customersApi.recalculateBalances(formData.customer_id);
+
+    return data;
+  },
+
+  async update(id: string, formData: Partial<PurchaseFormData>): Promise<Purchase> {
+    const { data: existing, error: getErr } = await supabase
+      .from('purchases')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (getErr) throw getErr;
+    if (!existing) throw new Error('Purchase not found');
+
+    const weight = (formData.weight ?? existing.weight ?? 0) as number;
+    const bag = (formData.bag ?? existing.bag ?? 0) as number;
+    const netWeight = weight - bag;
+    const ghatPerKg = (formData.ghat_per_kg ?? existing.ghat_per_kg ?? 0) as number;
+    const totalGhat = (netWeight * ghatPerKg) / 1000;
+    const touch = (formData.touch ?? existing.touch ?? 0) as number;
+    const wastage = (formData.wastage ?? existing.wastage ?? 0) as number;
+    const rate = (formData.rate ?? existing.rate ?? 0) as number;
+    const fine = (netWeight + totalGhat) * (touch + wastage) / 100;
+    const amount = (netWeight * rate) / 1000;
+
+    const { data, error } = await supabase
+      .from('purchases')
+      .update({
+        ...formData,
+        net_weight: netWeight,
+        total_ghat: totalGhat,
+        fine,
+        amount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+
+    await customersApi.recalculateBalances(existing.customer_id);
 
     return data;
   },
@@ -342,13 +480,7 @@ export const purchasesApi = {
       .eq('id', id)
       .maybeSingle();
     
-    if (purchase) {
-      await customersApi.updateBalances(
-        purchase.customer_id,
-        purchase.amount || 0,
-        purchase.fine || 0
-      );
-    }
+    const customerId = purchase?.customer_id;
 
     const { error } = await supabase
       .from('purchases')
@@ -356,6 +488,10 @@ export const purchasesApi = {
       .eq('id', id);
     
     if (error) throw error;
+
+    if (customerId) {
+      await customersApi.recalculateBalances(customerId);
+    }
   },
 
   async getDailySummary(date: string): Promise<{ total: number; count: number }> {
@@ -405,6 +541,16 @@ export const paymentsApi = {
     return Array.isArray(data) ? data : [];
   },
 
+  async getById(id: string): Promise<PaymentWithCustomer | null> {
+    const { data, error } = await supabase
+      .from('payments')
+      .select('*, customer:customers(*)')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return data ?? null;
+  },
+
   async create(formData: PaymentFormData): Promise<Payment> {
     const userId = await getCurrentUserId();
     const invoiceNo = await generateInvoiceNo('payment');
@@ -430,33 +576,51 @@ export const paymentsApi = {
     if (error) throw error;
 
     // Update customer balances based on transaction type
-    const amount = formData.amount || 0;
-    const amountDelta = formData.transaction_type === 'payment' ? -amount : amount;
-    const fineDelta = formData.transaction_type === 'payment' ? -fine : fine;
-    
-    await customersApi.updateBalances(formData.customer_id, amountDelta, fineDelta);
+    await customersApi.recalculateBalances(formData.customer_id);
+
+    return data;
+  },
+
+  async update(id: string, formData: Partial<PaymentFormData>): Promise<Payment> {
+    const { data: existing, error: getErr } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (getErr) throw getErr;
+    if (!existing) throw new Error('Payment not found');
+
+    const gross = (formData.gross ?? existing.gross ?? 0) as number;
+    const purity = (formData.purity ?? existing.purity ?? 0) as number;
+    const fine = gross * purity / 100;
+
+    const { data, error } = await supabase
+      .from('payments')
+      .update({
+        ...formData,
+        fine,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+
+    // Balance adjustment
+    await customersApi.recalculateBalances(existing.customer_id);
 
     return data;
   },
 
   async delete(id: string): Promise<void> {
-    // Get payment details first to reverse customer balance
+    // Get payment details first
     const { data: payment } = await supabase
       .from('payments')
       .select('*')
       .eq('id', id)
       .maybeSingle();
     
-    if (payment) {
-      const amountDelta = payment.transaction_type === 'payment' 
-        ? (payment.amount || 0) 
-        : -(payment.amount || 0);
-      const fineDelta = payment.transaction_type === 'payment' 
-        ? (payment.fine || 0) 
-        : -(payment.fine || 0);
-      
-      await customersApi.updateBalances(payment.customer_id, amountDelta, fineDelta);
-    }
+    const customerId = payment?.customer_id;
 
     const { error } = await supabase
       .from('payments')
@@ -464,6 +628,10 @@ export const paymentsApi = {
       .eq('id', id);
     
     if (error) throw error;
+
+    if (customerId) {
+      await customersApi.recalculateBalances(customerId);
+    }
   },
 };
 

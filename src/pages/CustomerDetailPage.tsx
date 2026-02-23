@@ -6,7 +6,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { customersApi, salesApi, purchasesApi, paymentsApi } from '@/db/api';
 import type { Customer, Sale, Purchase, Payment } from '@/types';
-import { ArrowLeft, Edit, Phone, MapPin, FileText } from 'lucide-react';
+import { ArrowLeft, Edit, Phone, MapPin, FileText, RefreshCcw } from 'lucide-react';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 
 export default function CustomerDetailPage() {
@@ -54,6 +55,18 @@ export default function CustomerDetailPage() {
   const formatFine = (fine: number | null) => {
     return `${(fine || 0).toFixed(3)}g`;
   };
+  
+  const handleRecalculate = async () => {
+    if (!customer) return;
+    try {
+      await customersApi.recalculateBalances(customer.id);
+      toast.success('Balances recalculated');
+      await loadData();
+    } catch (error) {
+      console.error('Failed to recalculate balances:', error);
+      toast.error('Failed to recalculate');
+    }
+  };
 
   if (loading) {
     return (
@@ -83,6 +96,9 @@ export default function CustomerDetailPage() {
         <h1 className="text-2xl font-bold flex-1">{customer.name}</h1>
         <Button variant="outline" size="icon" onClick={() => navigate(`/add-customer?edit=${customer.id}`)}>
           <Edit className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="icon" className="ml-2" onClick={handleRecalculate}>
+          <RefreshCcw className="h-4 w-4" />
         </Button>
       </div>
 

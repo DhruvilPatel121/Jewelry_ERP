@@ -1,18 +1,32 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { salesApi, purchasesApi, analyticsApi } from '@/db/api';
-import type { SaleWithCustomer, PurchaseWithCustomer } from '@/types';
-import { Plus, FileText, BookOpen, Package, TrendingUp, TrendingDown } from 'lucide-react';
-import { format } from 'date-fns';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { salesApi, purchasesApi, analyticsApi } from "@/db/api";
+import type { SaleWithCustomer, PurchaseWithCustomer } from "@/types";
+import {
+  Plus,
+  FileText,
+  BookOpen,
+  Package,
+  TrendingUp,
+  TrendingDown,
+} from "lucide-react";
+import { format } from "date-fns";
 
 export default function HomePage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [dailySummary, setDailySummary] = useState({ todaySales: 0, todayPurchases: 0 });
-  const [recentTransactions, setRecentTransactions] = useState<Array<(SaleWithCustomer | PurchaseWithCustomer) & { type: 'sale' | 'purchase' }>>([]);
+  const [dailySummary, setDailySummary] = useState({
+    todaySales: 0,
+    todayPurchases: 0,
+  });
+  const [recentTransactions, setRecentTransactions] = useState<
+    Array<
+      (SaleWithCustomer | PurchaseWithCustomer) & { type: "sale" | "purchase" }
+    >
+  >([]);
 
   useEffect(() => {
     loadData();
@@ -21,8 +35,8 @@ export default function HomePage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const today = new Date().toISOString().split('T')[0];
-      
+      const today = new Date().toISOString().split("T")[0];
+
       const [summary, sales, purchases] = await Promise.all([
         analyticsApi.getDashboardSummary(),
         salesApi.getAll(today, today),
@@ -36,20 +50,23 @@ export default function HomePage() {
 
       // Combine and sort recent transactions
       const combined = [
-        ...sales.map(s => ({ ...s, type: 'sale' as const })),
-        ...purchases.map(p => ({ ...p, type: 'purchase' as const })),
-      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        ...sales.map((s) => ({ ...s, type: "sale" as const })),
+        ...purchases.map((p) => ({ ...p, type: "purchase" as const })),
+      ].sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
 
       setRecentTransactions(combined.slice(0, 10));
     } catch (error) {
-      console.error('Failed to load data:', error);
+      console.error("Failed to load data:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const formatCurrency = (amount: number | null) => {
-    return `₹${(amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₹${(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
@@ -67,7 +84,9 @@ export default function HomePage() {
             {loading ? (
               <Skeleton className="h-8 w-32 bg-muted" />
             ) : (
-              <p className="text-2xl font-bold text-success">{formatCurrency(dailySummary.todaySales)}</p>
+              <p className="text-2xl font-bold text-success">
+                {formatCurrency(dailySummary.todaySales)}
+              </p>
             )}
           </CardContent>
         </Card>
@@ -83,7 +102,9 @@ export default function HomePage() {
             {loading ? (
               <Skeleton className="h-8 w-32 bg-muted" />
             ) : (
-              <p className="text-2xl font-bold text-warning">{formatCurrency(dailySummary.todayPurchases)}</p>
+              <p className="text-2xl font-bold text-warning">
+                {formatCurrency(dailySummary.todayPurchases)}
+              </p>
             )}
           </CardContent>
         </Card>
@@ -95,21 +116,52 @@ export default function HomePage() {
           <CardTitle className="text-lg">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 gap-3">
-          <Button onClick={() => navigate('/new-sale')} className="h-auto py-4 flex-col gap-2">
+          <Button
+            onClick={() => navigate("/new-sale")}
+            className="h-auto py-4 flex-col gap-2"
+          >
             <Plus className="h-5 w-5" />
             <span>Add Sale</span>
           </Button>
-          <Button onClick={() => navigate('/sale-report')} variant="outline" className="h-auto py-4 flex-col gap-2">
+          <Button
+            onClick={() => navigate("/sale-report")}
+            variant="outline"
+            className="h-auto py-4 flex-col gap-2"
+          >
             <FileText className="h-5 w-5" />
             <span>Sale Report</span>
           </Button>
-          <Button onClick={() => navigate('/day-book')} variant="outline" className="h-auto py-4 flex-col gap-2">
+          <Button
+            onClick={() => navigate("/day-book")}
+            variant="outline"
+            className="h-auto py-4 flex-col gap-2"
+          >
             <BookOpen className="h-5 w-5" />
             <span>Day Book</span>
           </Button>
-          <Button onClick={() => navigate('/items')} variant="outline" className="h-auto py-4 flex-col gap-2">
+          <Button
+            onClick={() => navigate("/purchase-report")}
+            variant="outline"
+            className="h-auto py-4 flex-col gap-2"
+          >
+            <FileText className="h-5 w-5" />
+            <span>Purchase Report</span>
+          </Button>
+          <Button
+            onClick={() => navigate("/items")}
+            variant="outline"
+            className="h-auto py-4 flex-col gap-2"
+          >
             <Package className="h-5 w-5" />
             <span>Add Item</span>
+          </Button>
+          <Button
+            onClick={() => navigate("/add-customer")}
+            variant="outline"
+            className="h-auto py-4 flex-col gap-2"
+          >
+            <Plus className="h-5 w-5" />
+            <span>Add Customer</span>
           </Button>
         </CardContent>
       </Card>
@@ -123,7 +175,10 @@ export default function HomePage() {
           {loading ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3 border rounded-lg"
+                >
                   <div className="space-y-2">
                     <Skeleton className="h-4 w-32 bg-muted" />
                     <Skeleton className="h-3 w-24 bg-muted" />
@@ -133,7 +188,9 @@ export default function HomePage() {
               ))}
             </div>
           ) : recentTransactions.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No transactions today</p>
+            <p className="text-center text-muted-foreground py-8">
+              No transactions today
+            </p>
           ) : (
             <div className="space-y-2">
               {recentTransactions.map((transaction) => (
@@ -143,25 +200,35 @@ export default function HomePage() {
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded ${
-                        transaction.type === 'sale' 
-                          ? 'bg-success/10 text-success' 
-                          : 'bg-warning/10 text-warning'
-                      }`}>
-                        {transaction.type === 'sale' ? 'SALE' : 'PURCHASE'}
+                      <span
+                        className={`text-xs font-medium px-2 py-0.5 rounded ${
+                          transaction.type === "sale"
+                            ? "bg-success/10 text-success"
+                            : "bg-warning/10 text-warning"
+                        }`}
+                      >
+                        {transaction.type === "sale" ? "SALE" : "PURCHASE"}
                       </span>
-                      <span className="font-medium">{transaction.customer?.name || 'Unknown'}</span>
+                      <span className="font-medium">
+                        {transaction.customer?.name || "Unknown"}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                       <span>{transaction.item_name}</span>
                       <span>•</span>
-                      <span>{format(new Date(transaction.date), 'MMM dd, yyyy')}</span>
+                      <span>
+                        {format(new Date(transaction.date), "MMM dd, yyyy")}
+                      </span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`font-semibold ${
-                      transaction.type === 'sale' ? 'text-success' : 'text-warning'
-                    }`}>
+                    <p
+                      className={`font-semibold ${
+                        transaction.type === "sale"
+                          ? "text-success"
+                          : "text-warning"
+                      }`}
+                    >
                       {formatCurrency(transaction.amount)}
                     </p>
                     {transaction.fine && (
@@ -179,7 +246,7 @@ export default function HomePage() {
 
       {/* Floating Action Button */}
       <Button
-        onClick={() => navigate('/new-sale')}
+        onClick={() => navigate("/new-sale")}
         size="lg"
         className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg"
       >

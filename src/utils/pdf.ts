@@ -1,0 +1,67 @@
+declare global {
+  interface Window {
+    html2canvas?: any;
+    jspdf?: any;
+  }
+}
+
+const loadScript = (src: string) =>
+  new Promise<void>((resolve, reject) => {
+    const existing = Array.from(document.getElementsByTagName('script')).find(
+      (s) => s.src === src
+    );
+    if (existing) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`Failed to load ${src}`));
+    document.head.appendChild(script);
+  });
+
+export async function ensurePdfLibsLoaded() {
+  if (!window.jspdf) {
+    await loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js');
+  }
+  if (!window.html2canvas) {
+    await loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
+  }
+}
+
+export async function downloadElementAsPdf(element: HTMLElement, filename: string) {
+  await ensurePdfLibsLoaded();
+  const html2canvas = window.html2canvas;
+  const { jsPDF } = window.jspdf;
+
+  const canvas = await html2canvas(element, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#ffffff',
+  });
+
+  const imgData = canvas.toDataURL('image/png');
+
+  // Page size A4 in mm
+  const pageWidth = 210;
+  const pageHeight = 297;
+  const margin = 10;
+
+  // Convert canvas size (px) to mm (approx 1mm = 3.78px)
+  const pxToMm = (px: number) => px / 3.78;
+  const contentWidthMm = pxToMm(canvas.width);
+  const contentHeightMm = pxToMm(canvas.height);
+
+  // Scale to fit page width/height
+  const maxWidth = pageWidth - margin * 2;
+  const maxHeight = pageHeight - margin * 2;
+  const scale = Math.min(maxWidth / contentWidthMm, maxHeight / contentHeightMm);
+  const renderWidth = contentWidthMm * scale;
+  const renderHeight = contentHeightMm * scale;
+
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  pdf.addImage(imgData, 'PNG', margin, margin, renderWidth, renderHeight);
+  pdf.save(filename);
+}

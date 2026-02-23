@@ -22,6 +22,8 @@ const customerSchema = z.object({
   address: z.string().optional(),
   opening_amount: z.coerce.number().default(0),
   opening_fine: z.coerce.number().default(0),
+  closing_amount: z.coerce.number().optional(),
+  closing_fine: z.coerce.number().optional(),
 });
 
 export default function AddCustomerPage() {
@@ -40,6 +42,8 @@ export default function AddCustomerPage() {
       address: '',
       opening_amount: 0,
       opening_fine: 0,
+      closing_amount: 0,
+      closing_fine: 0,
     },
   });
 
@@ -63,6 +67,8 @@ export default function AddCustomerPage() {
           address: customer.address || '',
           opening_amount: customer.opening_amount,
           opening_fine: customer.opening_fine,
+          closing_amount: customer.closing_amount,
+          closing_fine: customer.closing_fine,
         });
       }
     } catch (error) {
@@ -205,6 +211,38 @@ export default function AddCustomerPage() {
                   )}
                 />
               </div>
+
+              {editId && (
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="closing_amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Closing Amount (₹)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="closing_fine"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Closing Fine (g)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.001" placeholder="0.000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <Button
