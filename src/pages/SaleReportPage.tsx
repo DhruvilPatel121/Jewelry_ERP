@@ -141,9 +141,18 @@ export default function SaleReportPage() {
   const handleUpdate = async (values: SaleFormData) => {
     if (!editing) return;
     try {
-      await salesApi.update(editing.id, values);
+      const updatedItem = await salesApi.update(editing.id, values);
       toast.success("Sale updated");
       setEditing(null);
+      
+      // Update local state immediately with updated item
+      setSales(prev => prev.map(sale => 
+        sale.id === editing.id 
+          ? { ...sale, ...updatedItem }
+          : sale
+      ));
+      
+      // Then refresh data from server to ensure consistency
       await handleFilter();
     } catch (e) {
       console.error(e);

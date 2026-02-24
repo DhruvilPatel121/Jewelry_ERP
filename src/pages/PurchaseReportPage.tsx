@@ -140,9 +140,18 @@ export default function PurchaseReportPage() {
   const handleUpdate = async (values: PurchaseFormData) => {
     if (!editing) return;
     try {
-      await purchasesApi.update(editing.id, values);
+      const updatedItem = await purchasesApi.update(editing.id, values);
       toast.success("Purchase updated");
       setEditing(null);
+      
+      // Update local state immediately with updated item
+      setPurchases(prev => prev.map(purchase => 
+        purchase.id === editing.id 
+          ? { ...purchase, ...updatedItem }
+          : purchase
+      ));
+      
+      // Then refresh data from server to ensure consistency
       await handleFilter();
     } catch (e) {
       console.error(e);

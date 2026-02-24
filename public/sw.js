@@ -73,6 +73,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // 🚫 Don't intercept PATCH/POST/PUT/DELETE requests - let them go to network
+  if (['PATCH', 'POST', 'PUT', 'DELETE'].includes(event.request.method)) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {

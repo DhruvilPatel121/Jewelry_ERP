@@ -17,6 +17,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
@@ -140,15 +141,26 @@ export default function DayBookPage() {
   const handleUpdate = async (values: any) => {
     if (!editing) return;
     try {
+      let updatedItem;
       if (editing.type === "sale") {
-        await salesApi.update(editing.id, values);
+        updatedItem = await salesApi.update(editing.id, values);
       } else if (editing.type === "purchase") {
-        await purchasesApi.update(editing.id, values);
+        updatedItem = await purchasesApi.update(editing.id, values);
       } else {
-        await paymentsApi.update(editing.id, values);
+        updatedItem = await paymentsApi.update(editing.id, values);
       }
+      
       toast.success("Updated");
       setEditing(null);
+      
+      // Update local state immediately with the updated item
+      setTransactions(prev => prev.map(transaction => 
+        transaction.id === editing.id 
+          ? { ...transaction, ...updatedItem }
+          : transaction
+      ));
+      
+      // Then refresh data from server to ensure consistency
       await loadData();
     } catch (e) {
       console.error(e);
@@ -374,6 +386,9 @@ export default function DayBookPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit {editing?.type?.toUpperCase()}</DialogTitle>
+            <DialogDescription>
+              Make changes to the {editing?.type} entry here. Click save when you're done.
+            </DialogDescription>
           </DialogHeader>
           <Form {...editForm}>
             <form

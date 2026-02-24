@@ -125,7 +125,7 @@ export const customersApi = {
   async update(id: string, formData: Partial<CustomerFormData>): Promise<Customer> {
     const { data, error } = await supabase
       .from('customers')
-      .update({ ...formData, updated_at: new Date().toISOString() })
+      .update(formData)
       .eq('id', id)
       .select()
       .single();
@@ -175,7 +175,7 @@ export const itemsApi = {
   async update(id: string, formData: Partial<ItemFormData>): Promise<Item> {
     const { data, error } = await supabase
       .from('items')
-      .update({ ...formData, updated_at: new Date().toISOString() })
+      .update(formData)
       .eq('id', id)
       .select()
       .single();
@@ -304,7 +304,6 @@ export const salesApi = {
         total_ghat: totalGhat,
         fine,
         amount,
-        updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .select()
@@ -460,7 +459,6 @@ export const purchasesApi = {
         total_ghat: totalGhat,
         fine,
         amount,
-        updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .select()
@@ -599,7 +597,6 @@ export const paymentsApi = {
       .update({
         ...formData,
         fine,
-        updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .select()
@@ -697,7 +694,7 @@ export const companyApi = {
     if (existing) {
       const { data, error } = await supabase
         .from('company_settings')
-        .update({ ...formData, updated_at: new Date().toISOString() })
+        .update(formData)
         .eq('user_id', userId)
         .select()
         .single();
