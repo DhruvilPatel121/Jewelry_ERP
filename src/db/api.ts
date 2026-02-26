@@ -246,7 +246,7 @@ export const salesApi = {
     const totalGhat = (netWeight * ghatPerKg) / 1000;
     const touch = formData.touch || 0;
     const wastage = formData.wastage || 0;
-    const fine = (netWeight + totalGhat) * (touch + wastage) / 100;
+    const fine = (netWeight + totalGhat) * touch / 100;
     const rate = formData.rate || 0;
     // Amount must be based on kilograms, not pics
     const amount = (netWeight * rate) / 1000;
@@ -292,7 +292,7 @@ export const salesApi = {
     const touch = (formData.touch ?? existing.touch ?? 0) as number;
     const wastage = (formData.wastage ?? existing.wastage ?? 0) as number;
     const rate = (formData.rate ?? existing.rate ?? 0) as number;
-    const fine = (netWeight + totalGhat) * (touch + wastage) / 100;
+    const fine = (netWeight + totalGhat) * touch / 100;
     const amount = (netWeight * rate) / 1000;
 
     // Update record
@@ -405,7 +405,7 @@ export const purchasesApi = {
     const totalGhat = (netWeight * ghatPerKg) / 1000;
     const touch = formData.touch || 0;
     const wastage = formData.wastage || 0;
-    const fine = (netWeight + totalGhat) * (touch + wastage) / 100;
+    const fine = (netWeight + totalGhat) * touch / 100;
     const rate = formData.rate || 0;
     const amount = (netWeight * rate) / 1000;
 
@@ -448,7 +448,7 @@ export const purchasesApi = {
     const touch = (formData.touch ?? existing.touch ?? 0) as number;
     const wastage = (formData.wastage ?? existing.wastage ?? 0) as number;
     const rate = (formData.rate ?? existing.rate ?? 0) as number;
-    const fine = (netWeight + totalGhat) * (touch + wastage) / 100;
+    const fine = (netWeight + totalGhat) * touch / 100;
     const amount = (netWeight * rate) / 1000;
 
     const { data, error } = await supabase

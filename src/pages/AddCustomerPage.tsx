@@ -87,7 +87,7 @@ export default function AddCustomerPage() {
         await customersApi.create(data);
         toast.success('Customer added successfully');
       }
-      navigate('/customers');
+      navigate('/customers', { state: { refresh: true } });
     } catch (error) {
       console.error('Failed to save customer:', error);
       toast.error('Failed to save customer');
@@ -99,7 +99,7 @@ export default function AddCustomerPage() {
   return (
     <div className="container max-w-2xl mx-auto p-4 space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/customers')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/customers', { state: { refresh: true } })}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-2xl font-bold">{editId ? 'Edit Customer' : 'Add New Customer'}</h1>
@@ -249,7 +249,7 @@ export default function AddCustomerPage() {
                   type="button"
                   variant="outline"
                   className="flex-1"
-                  onClick={() => navigate('/customers')}
+                  onClick={() => navigate('/customers', { state: { refresh: true } })}
                   disabled={loading}
                 >
                   Cancel

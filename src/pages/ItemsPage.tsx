@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import { Plus, Edit, Trash2, Package } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ItemsPage() {
+  const location = useLocation();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -22,6 +24,22 @@ export default function ItemsPage() {
   useEffect(() => {
     loadItems();
   }, []);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      loadItems();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
+  useEffect(() => {
+    if (location.state?.refresh) {
+      loadItems();
+      window.history.replaceState({}, '', location.pathname);
+    }
+  }, [location.state]);
 
   const loadItems = async () => {
     try {
@@ -39,16 +57,26 @@ export default function ItemsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let updatedItem;
       if (editingItem) {
-        await itemsApi.update(editingItem.id, formData);
+        updatedItem = await itemsApi.update(editingItem.id, formData);
         toast.success('Item updated successfully');
+        // Update local state immediately
+        setItems(prev => prev.map(item => 
+          item.id === editingItem.id 
+            ? { ...item, ...updatedItem }
+            : item
+        ));
       } else {
-        await itemsApi.create(formData);
+        updatedItem = await itemsApi.create(formData);
         toast.success('Item added successfully');
+        // Add to local state immediately
+        setItems(prev => [...prev, updatedItem]);
       }
       setDialogOpen(false);
       setFormData({ name: '', description: '' });
       setEditingItem(null);
+      // Then refresh from server to ensure consistency
       loadItems();
     } catch (error) {
       console.error('Failed to save item:', error);

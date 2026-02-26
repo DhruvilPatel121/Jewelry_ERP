@@ -1,24 +1,73 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { customersApi } from '@/db/api';
-import type { Customer } from '@/types';
+import type { Customer, CustomerFormData } from '@/types';
 import { Plus, Search, Users, ChevronRight, Trash } from 'lucide-react';
 import { toast } from 'sonner';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
+const customerSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  mobile_no: z.string().min(10, 'Mobile number must be at least 10 digits'),
+  city: z.string().optional(),
+  gst_no: z.string().optional(),
+  address: z.string().optional(),
+  opening_amount: z.coerce.number().default(0),
+  opening_fine: z.coerce.number().default(0),
+});
 
 export default function CustomersPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const form = useForm<CustomerFormData>({
+    resolver: zodResolver(customerSchema),
+    defaultValues: {
+      name: '',
+      mobile_no: '',
+      city: '',
+      gst_no: '',
+      address: '',
+      opening_amount: 0,
+      opening_fine: 0,
+    },
+  });
 
   useEffect(() => {
     loadCustomers();
   }, []);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      loadCustomers();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
+  useEffect(() => {
+    if (location.state?.refresh) {
+      loadCustomers();
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
 
   useEffect(() => {
     if (searchQuery) {
@@ -54,18 +103,36 @@ export default function CustomersPage() {
     return `${fine.toFixed(3)}g`;
   };
   
-  const handleDelete = async (customer: Customer, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const confirmed = window.confirm(`Delete ${customer.name}? This will remove all data.`);
-    if (!confirmed) return;
+  const handleDelete = async (id: string) => {
     try {
-      await customersApi.delete(customer.id);
+      await customersApi.delete(id);
       toast.success('Customer deleted');
-      setCustomers(prev => prev.filter(c => c.id !== customer.id));
-      setFilteredCustomers(prev => prev.filter(c => c.id !== customer.id));
+      setCustomers(prev => prev.filter(c => c.id !== id));
+      setFilteredCustomers(prev => prev.filter(c => c.id !== id));
     } catch (error) {
       console.error('Failed to delete customer:', error);
       toast.error('Failed to delete customer');
+    }
+  };
+
+  const handleAddCustomer = async (data: CustomerFormData) => {
+    try {
+      const newCustomer = await customersApi.create(data);
+      toast.success('Customer added successfully');
+      
+      // Add to local state immediately
+      setCustomers(prev => [...prev, newCustomer]);
+      setFilteredCustomers(prev => [...prev, newCustomer]);
+      
+      // Close dialog and reset form
+      setDialogOpen(false);
+      form.reset();
+      
+      // Then refresh from server to ensure consistency
+      loadCustomers();
+    } catch (error) {
+      console.error('Failed to add customer:', error);
+      toast.error('Failed to add customer');
     }
   };
 
@@ -73,7 +140,7 @@ export default function CustomersPage() {
     <div className="container max-w-4xl mx-auto p-4 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Customers</h1>
-        <Button onClick={() => navigate('/add-customer')}>
+        <Button onClick={() => setDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Customer
         </Button>
@@ -124,9 +191,8 @@ export default function CustomersPage() {
           ) : (
             <div className="space-y-2">
               {filteredCustomers.map((customer) => (
-                <button
+                <div
                   key={customer.id}
-                  onClick={() => navigate(`/customers/${customer.id}`)}
                   className="w-full flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors text-left"
                 >
                   <div className="flex-1">
@@ -135,50 +201,204 @@ export default function CustomersPage() {
                     {customer.city && (
                       <p className="text-xs text-muted-foreground mt-1">{customer.city}</p>
                     )}
-                  </div>
-                  <div className="text-right mr-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Amount:</span>
-                      <span
-                        className={`font-semibold ${
-                          customer.closing_amount >= 0 ? 'text-success' : 'text-destructive'
-                        }`}
-                      >
-                        {formatAmount(Math.abs(customer.closing_amount))}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {customer.closing_amount >= 0 ? 'DR' : 'CR'}
-                      </span>
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">Amount:</span>
+                          <span
+                            className={`font-semibold ${
+                              customer.closing_amount >= 0 ? 'text-success' : 'text-destructive'
+                            }`}
+                          >
+                            {formatAmount(Math.abs(customer.closing_amount))}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {customer.closing_amount >= 0 ? 'DR' : 'CR'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-muted-foreground">Fine:</span>
+                          <span
+                            className={`text-sm font-medium ${
+                              customer.closing_fine >= 0 ? 'text-success' : 'text-destructive'
+                            }`}
+                          >
+                            {formatFine(Math.abs(customer.closing_fine))}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {customer.closing_fine >= 0 ? 'DR' : 'CR'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-muted-foreground">Fine:</span>
-                      <span
-                        className={`text-sm font-medium ${
-                          customer.closing_fine >= 0 ? 'text-success' : 'text-destructive'
-                        }`}
-                      >
-                        {formatFine(Math.abs(customer.closing_fine))}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {customer.closing_fine >= 0 ? 'DR' : 'CR'}
-                      </span>
-                    </div>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="icon"
-                    className="ml-2"
-                    onClick={(e) => handleDelete(customer, e)}
+                    onClick={() => navigate(`/customers/${customer.id}`)}
                   >
-                    <Trash className="h-4 w-4 text-destructive" />
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   </Button>
-                </button>
+                  <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="ml-2"
+                        >
+                          <Trash className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Customer</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{customer.name}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(customer.id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                </div>
               ))}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Add Customer Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Customer</DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleAddCustomer)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Customer name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="mobile_no"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mobile No *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Mobile number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>City</FormLabel>
+                    <FormControl>
+                      <Input placeholder="City" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="gst_no"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>GST No</FormLabel>
+                    <FormControl>
+                      <Input placeholder="GST number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Address</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Full address" rows={3} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="opening_amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Opening Amount (₹)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="opening_fine"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Opening Fine (g)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.001" placeholder="0.000" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setDialogOpen(false);
+                    form.reset();
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" className="flex-1">
+                  Add Customer
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

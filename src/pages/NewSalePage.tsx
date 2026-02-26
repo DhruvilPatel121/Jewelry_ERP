@@ -133,18 +133,8 @@ export default function NewSalePage() {
     // Total Ghat = (Net Weight * Ghat) / 1000
     const totalGhat = (netWeight * ghatPerKg) / 1000;
 
-    // Fine = (Net Weight + Total Ghat) * (Touch + Wastage) / 100
-    // User requested: fine = (net weight + ghat per kg) * touch
-    // Interpreting as: Fine = (Net Weight + Total Ghat) * Touch / 100
-    // But keeping wastage support if needed, assuming user might have meant wastage by 'ghat per kg' or similar.
-    // However, user explicitly said "ghat per kg" in formula.
-    // If I strictly follow user: Fine = (Net Weight + Total Ghat) * Touch / 100.
-    // I will include Wastage if it's non-zero, as per image showing Wastage.
-    // Image formula seems to be: Net * (Touch + Wastage) / 100.
-    // If GhatPerKg is used, it adds to weight.
-    // Let's implement: Fine = (Net Weight + Total Ghat) * (Touch + Wastage) / 100.
-    // This covers both cases (if Wastage is 0, it uses Touch).
-    const fine = ((netWeight + totalGhat) * (touch + wastage)) / 100;
+    // Fine = (Net Weight + Total Ghat) * Touch / 100
+    const fine = (netWeight + totalGhat) * touch / 100;
 
     // Amount = (Net Weight * Rate) / 1000
     // User said: "calculate sales... based on kilograms not pics"

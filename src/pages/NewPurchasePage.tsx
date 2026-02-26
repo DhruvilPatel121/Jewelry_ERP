@@ -120,8 +120,8 @@ export default function NewPurchasePage() {
     // Total Ghat = (Net Weight × Ghat) / 1000
     const totalGhat = (netWeight * ghatPerKg) / 1000;
 
-    // Fine = (Net Weight + Total Ghat) × (Touch + Wastage) / 100
-    const fine = ((netWeight + totalGhat) * (touch + wastage)) / 100;
+    // Fine = (Net Weight + Total Ghat) * Touch / 100
+    const fine = (netWeight + totalGhat) * touch / 100;
 
     // Amount = (Net Weight × Rate) / 1000 (per kg only)
     const amount = (netWeight * rate) / 1000;
