@@ -173,9 +173,9 @@ export default function SaleReportPage() {
 
   return (
     <div className="container max-w-6xl mx-auto p-4 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Sale Report</h1>
-        <Button variant="outline">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold">Sale Report</h1>
+        <Button variant="outline" size="sm" className="w-full sm:w-auto">
           <Download className="h-4 w-4 mr-2" />
           Export
         </Button>
@@ -190,7 +190,7 @@ export default function SaleReportPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Start Date</Label>
               <Input
@@ -227,14 +227,14 @@ export default function SaleReportPage() {
               </Select>
             </div>
           </div>
-          <Button onClick={handleFilter} className="w-full xl:w-auto">
+          <Button onClick={handleFilter} className="w-full sm:w-auto">
             Apply Filters
           </Button>
         </CardContent>
       </Card>
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -289,48 +289,68 @@ export default function SaleReportPage() {
               <p className="text-muted-foreground">No sales found</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {filteredSales.map((sale) => (
-                <div key={sale.id} className="p-4 border rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
+                <div key={sale.id} className="border rounded-lg overflow-hidden">
+                  {/* Mobile View */}
+                  <div className="sm:hidden">
+                    {/* Header with customer and amount */}
+                    <div className="bg-muted/30 p-3 border-b">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm truncate">
+                            {sale.customer?.name || "Unknown"}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-sm text-success">
+                            {formatCurrency(sale.amount)}
+                          </p>
+                          {sale.fine && (
+                            <p className="text-xs text-muted-foreground">
+                              {formatFine(sale.fine)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Content section */}
+                    <div className="p-3 space-y-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold">
-                          {sale.customer?.name || "Unknown"}
-                        </span>
-                        <span className="text-xs text-muted-foreground">•</span>
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-xs text-muted-foreground">Date:</span>
+                        <span className="text-sm">
                           {format(new Date(sale.date), "MMM dd, yyyy")}
                         </span>
                       </div>
-                      <p className="text-sm mt-1">{sale.item_name}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Invoice: {sale.invoice_no}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Item:</span>
+                        <span className="text-sm font-medium">{sale.item_name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Invoice:</span>
+                        <span className="text-sm font-mono">{sale.invoice_no}</span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-success">
-                        {formatCurrency(sale.amount)}
-                      </p>
-                      {sale.fine && (
-                        <p className="text-sm text-muted-foreground">
-                          {formatFine(sale.fine)}
-                        </p>
-                      )}
-                      <div className="flex gap-2 mt-2 justify-end">
+
+                    {/* Action buttons - icon only on mobile */}
+                    <div className="p-3 pt-0">
+                      <div className="flex justify-end gap-1">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setEditing(sale)}
+                          className="h-8 w-8 p-0"
                         >
-                          <Pencil className="h-4 w-4 mr-1" /> Edit
+                          <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="destructive"
                           size="sm"
                           onClick={() => handleDelete(sale.id)}
+                          className="h-8 w-8 p-0"
                         >
-                          <Trash2 className="h-4 w-4 mr-1" /> Delete
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="secondary"
@@ -338,9 +358,76 @@ export default function SaleReportPage() {
                           onClick={() =>
                             window.open(`/invoice/sale/${sale.id}`, "_blank")
                           }
+                          className="h-8 w-8 p-0"
                         >
-                          <Download className="h-4 w-4 mr-1" /> PDF
+                          <Download className="h-4 w-4" />
                         </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desktop View */}
+                  <div className="hidden sm:block">
+                    <div className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-semibold truncate">
+                              {sale.customer?.name || "Unknown"}
+                            </span>
+                            <span className="text-xs text-muted-foreground">•</span>
+                            <span className="text-sm text-muted-foreground">
+                              {format(new Date(sale.date), "MMM dd, yyyy")}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate mb-1">{sale.item_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Invoice: {sale.invoice_no}
+                          </p>
+                        </div>
+                        <div className="text-right ml-4">
+                          <div className="mb-2">
+                            <p className="font-semibold text-success">
+                              {formatCurrency(sale.amount)}
+                            </p>
+                            {sale.fine && (
+                              <p className="text-sm text-muted-foreground">
+                                {formatFine(sale.fine)}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setEditing(sale)}
+                              className="h-8 px-3 text-xs"
+                            >
+                              <Pencil className="h-3 w-3 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDelete(sale.id)}
+                              className="h-8 px-3 text-xs"
+                            >
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Delete
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                window.open(`/invoice/sale/${sale.id}`, "_blank")
+                              }
+                              className="h-8 px-3 text-xs"
+                            >
+                              <Download className="h-3 w-3 mr-1" />
+                              PDF
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -354,7 +441,7 @@ export default function SaleReportPage() {
         open={!!editing}
         onOpenChange={(open) => !open && setEditing(null)}
       >
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Sale</DialogTitle>
           </DialogHeader>
@@ -363,7 +450,7 @@ export default function SaleReportPage() {
               onSubmit={editForm.handleSubmit(handleUpdate)}
               className="space-y-3"
             >
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <FormField
                   name="weight"
                   control={editForm.control}
@@ -443,15 +530,16 @@ export default function SaleReportPage() {
                   )}
                 />
               </div>
-              <DialogFooter>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setEditing(null)}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
-                <Button type="submit">Save</Button>
+                <Button type="submit" className="w-full sm:w-auto">Save</Button>
               </DialogFooter>
             </form>
           </Form>

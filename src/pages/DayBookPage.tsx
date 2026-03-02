@@ -186,9 +186,9 @@ export default function DayBookPage() {
 
   return (
     <div className="container max-w-6xl mx-auto p-4 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Day Book</h1>
-        <Button variant="outline">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold">Day Book</h1>
+        <Button variant="outline" size="sm" className="w-full sm:w-auto">
           <Download className="h-4 w-4 mr-2" />
           Export
         </Button>
@@ -197,7 +197,7 @@ export default function DayBookPage() {
       {/* Date Filter */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-end gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-4">
             <div className="flex-1 space-y-2">
               <Label>Select Date</Label>
               <Input
@@ -206,7 +206,7 @@ export default function DayBookPage() {
                 onChange={(e) => setSelectedDate(e.target.value)}
               />
             </div>
-            <Button onClick={loadData}>Load</Button>
+            <Button onClick={loadData} className="w-full sm:w-auto">Load</Button>
           </div>
         </CardContent>
       </Card>
@@ -285,73 +285,93 @@ export default function DayBookPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {transactions.map((transaction) => (
-                <div key={transaction.id} className="p-4 border rounded-lg">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-xs font-medium px-2 py-0.5 rounded ${
-                            transaction.type === "sale"
-                              ? "bg-success/10 text-success"
-                              : transaction.type === "purchase"
-                                ? "bg-warning/10 text-warning"
-                                : "bg-primary/10 text-primary"
-                          }`}
-                        >
-                          {transaction.type.toUpperCase()}
-                        </span>
-                        <span className="font-semibold">
-                          {transaction.customer?.name || "Unknown"}
-                        </span>
+                <div key={transaction.id} className="border rounded-lg overflow-hidden">
+                  {/* Mobile View */}
+                  <div className="sm:hidden">
+                    {/* Header with type and amount */}
+                    <div className="bg-muted/30 p-3 border-b">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-xs font-medium px-2 py-1 rounded ${
+                              transaction.type === "sale"
+                                ? "bg-success/10 text-success"
+                                : transaction.type === "purchase"
+                                  ? "bg-warning/10 text-warning"
+                                  : "bg-primary/10 text-primary"
+                            }`}
+                          >
+                            {transaction.type.toUpperCase()}
+                          </span>
+                          <span className="font-semibold text-sm truncate">
+                            {transaction.customer?.name || "Unknown"}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <p
+                            className={`font-bold text-sm ${
+                              transaction.type === "sale"
+                                ? "text-success"
+                                : transaction.type === "purchase"
+                                  ? "text-warning"
+                                  : transaction.transaction_type === "receipt"
+                                    ? "text-primary"
+                                    : "text-destructive"
+                            }`}
+                          >
+                            {formatCurrency(transaction.amount)}
+                          </p>
+                          {transaction.fine && (
+                            <p className="text-xs text-muted-foreground">
+                              {transaction.fine.toFixed(3)}g
+                            </p>
+                          )}
+                        </div>
                       </div>
+                    </div>
+
+                    {/* Content section */}
+                    <div className="p-3 space-y-2">
                       {"item_name" in transaction && (
-                        <p className="text-sm mt-1">{transaction.item_name}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">Item:</span>
+                          <span className="text-sm font-medium">{transaction.item_name}</span>
+                        </div>
                       )}
                       {"payment_type" in transaction && (
-                        <p className="text-sm mt-1 capitalize">
-                          {transaction.payment_type.replace("_", " ")} -{" "}
-                          {transaction.transaction_type}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">Type:</span>
+                          <span className="text-sm capitalize">
+                            {transaction.payment_type.replace("_", " ")} - {transaction.transaction_type}
+                          </span>
+                        </div>
                       )}
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Invoice: {transaction.invoice_no}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Invoice:</span>
+                        <span className="text-sm font-mono">{transaction.invoice_no}</span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p
-                        className={`font-semibold ${
-                          transaction.type === "sale"
-                            ? "text-success"
-                            : transaction.type === "purchase"
-                              ? "text-warning"
-                              : transaction.transaction_type === "receipt"
-                                ? "text-primary"
-                                : "text-destructive"
-                        }`}
-                      >
-                        {formatCurrency(transaction.amount)}
-                      </p>
-                      {transaction.fine && (
-                        <p className="text-sm text-muted-foreground">
-                          {transaction.fine.toFixed(3)}g
-                        </p>
-                      )}
-                      <div className="flex gap-2 mt-2 justify-end">
+
+                    {/* Action buttons - icon only on mobile */}
+                    <div className="p-3 pt-0">
+                      <div className="flex justify-end gap-1">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => openEdit(transaction)}
+                          className="h-8 w-8 p-0"
                         >
-                          <Pencil className="h-4 w-4 mr-1" /> Edit
+                          <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="destructive"
                           size="sm"
                           onClick={() => handleDelete(transaction)}
+                          className="h-8 w-8 p-0"
                         >
-                          <Trash2 className="h-4 w-4 mr-1" /> Delete
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="secondary"
@@ -367,9 +387,108 @@ export default function DayBookPage() {
                                     : `/invoice/expense/${transaction.id}`;
                             window.open(path, "_blank");
                           }}
+                          className="h-8 w-8 p-0"
                         >
-                          Download
+                          <Download className="h-4 w-4" />
                         </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desktop View */}
+                  <div className="hidden sm:block">
+                    <div className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span
+                              className={`text-xs font-medium px-2 py-0.5 rounded ${
+                                transaction.type === "sale"
+                                  ? "bg-success/10 text-success"
+                                  : transaction.type === "purchase"
+                                    ? "bg-warning/10 text-warning"
+                                    : "bg-primary/10 text-primary"
+                              }`}
+                            >
+                              {transaction.type.toUpperCase()}
+                            </span>
+                            <span className="font-semibold truncate">
+                              {transaction.customer?.name || "Unknown"}
+                            </span>
+                          </div>
+                          {"item_name" in transaction && (
+                            <p className="text-sm text-muted-foreground truncate mb-1">{transaction.item_name}</p>
+                          )}
+                          {"payment_type" in transaction && (
+                            <p className="text-sm text-muted-foreground capitalize mb-1">
+                              {transaction.payment_type.replace("_", " ")} - {transaction.transaction_type}
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            Invoice: {transaction.invoice_no}
+                          </p>
+                        </div>
+                        <div className="text-right ml-4">
+                          <div className="mb-2">
+                            <p
+                              className={`font-semibold ${
+                                transaction.type === "sale"
+                                  ? "text-success"
+                                  : transaction.type === "purchase"
+                                    ? "text-warning"
+                                    : transaction.transaction_type === "receipt"
+                                      ? "text-primary"
+                                      : "text-destructive"
+                              }`}
+                            >
+                              {formatCurrency(transaction.amount)}
+                            </p>
+                            {transaction.fine && (
+                              <p className="text-sm text-muted-foreground">
+                                {transaction.fine.toFixed(3)}g
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEdit(transaction)}
+                              className="h-8 px-3 text-xs"
+                            >
+                              <Pencil className="h-3 w-3 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDelete(transaction)}
+                              className="h-8 px-3 text-xs"
+                            >
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Delete
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => {
+                                const path =
+                                  transaction.type === "sale"
+                                    ? `/invoice/sale/${transaction.id}`
+                                    : transaction.type === "purchase"
+                                      ? `/invoice/purchase/${transaction.id}`
+                                      : "payment_type" in transaction
+                                        ? `/invoice/payment/${transaction.id}`
+                                        : `/invoice/expense/${transaction.id}`;
+                                window.open(path, "_blank");
+                              }}
+                              className="h-8 px-3 text-xs"
+                            >
+                              <Download className="h-3 w-3 mr-1" />
+                              Download
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -383,7 +502,7 @@ export default function DayBookPage() {
         open={!!editing}
         onOpenChange={(open) => !open && setEditing(null)}
       >
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit {editing?.type?.toUpperCase()}</DialogTitle>
             <DialogDescription>
@@ -396,7 +515,7 @@ export default function DayBookPage() {
               className="space-y-3"
             >
               {editing?.type === "payment" ? (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <FormField
                     name="amount"
                     control={editForm.control}
@@ -438,7 +557,7 @@ export default function DayBookPage() {
                   />
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <FormField
                     name="weight"
                     control={editForm.control}
@@ -519,15 +638,16 @@ export default function DayBookPage() {
                   />
                 </div>
               )}
-              <DialogFooter>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setEditing(null)}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
-                <Button type="submit">Save</Button>
+                <Button type="submit" className="w-full sm:w-auto">Save</Button>
               </DialogFooter>
             </form>
           </Form>
