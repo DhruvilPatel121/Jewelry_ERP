@@ -76,7 +76,8 @@ export default function SaleInvoicePage() {
       </div>
       <div
         id="invoice-root"
-        className="max-w-4xl mx-auto bg-white text-black p-6 border"
+        className="max-w-4xl mx-auto bg-white text-black p-4 sm:p-6 border print:p-6"
+        style={{ minWidth: '800px' }}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -115,39 +116,39 @@ export default function SaleInvoicePage() {
           </p>
         </div>
 
-        <table className="w-full mt-4 border-collapse text-sm">
+        <table className="w-full mt-4 border-collapse text-xs sm:text-sm">
           <thead>
             <tr className="border">
-              <th className="border p-2">Sr.</th>
-              <th className="border p-2">Particulars</th>
-              <th className="border p-2">Gross Wt</th>
-              <th className="border p-2">Bag Wt</th>
-              <th className="border p-2">Net Wt</th>
-              <th className="border p-2">Touch</th>
-              <th className="border p-2">Wast</th>
-              <th className="border p-2">Fine</th>
-              <th className="border p-2">Pc/Pair</th>
-              <th className="border p-2">Rate</th>
-              <th className="border p-2">Cash</th>
+              <th className="border p-1 sm:p-2">Sr.</th>
+              <th className="border p-1 sm:p-2">Particulars</th>
+              <th className="border p-1 sm:p-2">Gross Wt</th>
+              <th className="border p-1 sm:p-2">Bag Wt</th>
+              <th className="border p-1 sm:p-2">Net Wt</th>
+              <th className="border p-1 sm:p-2">Touch</th>
+              <th className="border p-1 sm:p-2">Wast</th>
+              <th className="border p-1 sm:p-2">Fine</th>
+              <th className="border p-1 sm:p-2">Pc/Pair</th>
+              <th className="border p-1 sm:p-2">Rate</th>
+              <th className="border p-1 sm:p-2">Cash</th>
             </tr>
           </thead>
           <tbody>
             <tr className="border">
-              <td className="border p-2">(1)</td>
-              <td className="border p-2">{sale.item_name}</td>
-              <td className="border p-2">{(sale.weight || 0).toFixed(2)}</td>
-              <td className="border p-2">{(sale.bag || 0).toFixed(2)}</td>
-              <td className="border p-2">
+              <td className="border p-1 sm:p-2">(1)</td>
+              <td className="border p-1 sm:p-2">{sale.item_name}</td>
+              <td className="border p-1 sm:p-2">{(sale.weight || 0).toFixed(2)}</td>
+              <td className="border p-1 sm:p-2">{(sale.bag || 0).toFixed(2)}</td>
+              <td className="border p-1 sm:p-2">
                 {(
                   sale.net_weight || (sale.weight || 0) - (sale.bag || 0)
                 ).toFixed(2)}
               </td>
-              <td className="border p-2">{(sale.touch || 0).toFixed(2)}</td>
-              <td className="border p-2">{(sale.wastage || 0).toFixed(2)}</td>
-              <td className="border p-2">{(sale.fine || 0).toFixed(2)}</td>
-              <td className="border p-2">{(sale.pics || 0).toFixed(2)}</td>
-              <td className="border p-2">{(sale.rate || 0).toFixed(2)}</td>
-              <td className="border p-2">
+              <td className="border p-1 sm:p-2">{(sale.touch || 0).toFixed(2)}</td>
+              <td className="border p-1 sm:p-2">{(sale.wastage || 0).toFixed(2)}</td>
+              <td className="border p-1 sm:p-2">{(sale.fine || 0).toFixed(2)}</td>
+              <td className="border p-1 sm:p-2">{(sale.pics || 0).toFixed(2)}</td>
+              <td className="border p-1 sm:p-2">{(sale.rate || 0).toFixed(2)}</td>
+              <td className="border p-1 sm:p-2">
                 ₹
                 {(sale.amount || 0).toLocaleString("en-IN", {
                   minimumFractionDigits: 2,
@@ -156,22 +157,22 @@ export default function SaleInvoicePage() {
               </td>
             </tr>
             <tr className="border font-semibold">
-              <td className="border p-2" colSpan={2}>
+              <td className="border p-1 sm:p-2" colSpan={2}>
                 Totals
               </td>
-              <td className="border p-2">{(sale.weight || 0).toFixed(2)}</td>
-              <td className="border p-2">{(sale.bag || 0).toFixed(2)}</td>
-              <td className="border p-2">
+              <td className="border p-1 sm:p-2">{(sale.weight || 0).toFixed(2)}</td>
+              <td className="border p-1 sm:p-2">{(sale.bag || 0).toFixed(2)}</td>
+              <td className="border p-1 sm:p-2">
                 {(
                   sale.net_weight || (sale.weight || 0) - (sale.bag || 0)
                 ).toFixed(2)}
               </td>
-              <td className="border p-2"></td>
-              <td className="border p-2"></td>
-              <td className="border p-2">{(sale.fine || 0).toFixed(2)}</td>
-              <td className="border p-2">0.00</td>
-              <td className="border p-2">{(sale.rate || 0).toFixed(2)}</td>
-              <td className="border p-2">
+              <td className="border p-1 sm:p-2"></td>
+              <td className="border p-1 sm:p-2"></td>
+              <td className="border p-1 sm:p-2">{(sale.fine || 0).toFixed(2)}</td>
+              <td className="border p-1 sm:p-2">0.00</td>
+              <td className="border p-1 sm:p-2">{(sale.rate || 0).toFixed(2)}</td>
+              <td className="border p-1 sm:p-2">
                 ₹
                 {(sale.amount || 0).toLocaleString("en-IN", {
                   minimumFractionDigits: 2,
@@ -182,11 +183,11 @@ export default function SaleInvoicePage() {
           </tbody>
         </table>
 
-        <div className="grid grid-cols-2 gap-6 mt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-6">
           <div>
-            <div className="border p-3">
-              <p className="font-semibold mb-2">Opening Balance</p>
-              <div className="flex justify-between">
+            <div className="border p-2 sm:p-3">
+              <p className="font-semibold mb-2 text-sm sm:text-base">Opening Balance</p>
+              <div className="flex justify-between text-sm sm:text-base">
                 <span>Amount</span>
                 <span>
                   ₹
@@ -197,16 +198,16 @@ export default function SaleInvoicePage() {
                   Cr.
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between text-sm sm:text-base">
                 <span>Fine</span>
                 <span>{openingFine.toFixed(3)}g Cr.</span>
               </div>
             </div>
           </div>
           <div>
-            <div className="border p-3">
-              <p className="font-semibold mb-2">Closing Balance</p>
-              <div className="flex justify-between">
+            <div className="border p-2 sm:p-3">
+              <p className="font-semibold mb-2 text-sm sm:text-base">Closing Balance</p>
+              <div className="flex justify-between text-sm sm:text-base">
                 <span>Amount</span>
                 <span>
                   ₹
@@ -217,7 +218,7 @@ export default function SaleInvoicePage() {
                   Cr.
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between text-sm sm:text-base">
                 <span>Fine</span>
                 <span>{closingFine.toFixed(3)}g Cr.</span>
               </div>

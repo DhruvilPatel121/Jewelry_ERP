@@ -59,7 +59,8 @@ export default function ExpenseInvoicePage() {
       </div>
       <div
         id="invoice-root"
-        className="max-w-4xl mx-auto bg-white text-black p-6 border"
+        className="max-w-4xl mx-auto bg-white text-black p-4 sm:p-6 border print:p-6"
+        style={{ minWidth: '800px' }}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -84,19 +85,19 @@ export default function ExpenseInvoicePage() {
           </div>
         </div>
 
-        <table className="w-full mt-4 border-collapse text-sm">
+        <table className="w-full mt-4 border-collapse text-xs sm:text-sm">
           <thead>
             <tr className="border">
-              <th className="border p-2">Category</th>
-              <th className="border p-2">Description</th>
-              <th className="border p-2">Amount</th>
+              <th className="border p-1 sm:p-2">Category</th>
+              <th className="border p-1 sm:p-2">Description</th>
+              <th className="border p-1 sm:p-2">Amount</th>
             </tr>
           </thead>
           <tbody>
             <tr className="border">
-              <td className="border p-2">{expense.category}</td>
-              <td className="border p-2">{expense.description || ""}</td>
-              <td className="border p-2">
+              <td className="border p-1 sm:p-2">{expense.category}</td>
+              <td className="border p-1 sm:p-2">{expense.description || ""}</td>
+              <td className="border p-1 sm:p-2">
                 ₹
                 {(expense.amount || 0).toLocaleString("en-IN", {
                   minimumFractionDigits: 2,

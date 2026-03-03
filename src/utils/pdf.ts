@@ -36,32 +36,47 @@ export async function downloadElementAsPdf(element: HTMLElement, filename: strin
   const html2canvas = window.html2canvas;
   const { jsPDF } = window.jspdf;
 
+  // Detect if mobile device
+  const isMobile = window.innerWidth <= 768;
+  
+  // Responsive canvas settings
   const canvas = await html2canvas(element, {
-    scale: 2,
+    scale: isMobile ? 3 : 2, // Higher scale for mobile to maintain quality
     useCORS: true,
     backgroundColor: '#ffffff',
+    width: element.scrollWidth,
+    height: element.scrollHeight,
+    windowWidth: element.scrollWidth,
+    windowHeight: element.scrollHeight,
+    scrollX: 0,
+    scrollY: 0,
   });
 
-  const imgData = canvas.toDataURL('image/png');
+  const imgData = canvas.toDataURL('image/png', 1.0);
 
   // Page size A4 in mm
   const pageWidth = 210;
   const pageHeight = 297;
-  const margin = 10;
+  const margin = isMobile ? 5 : 10; // Smaller margins on mobile
 
   // Convert canvas size (px) to mm (approx 1mm = 3.78px)
   const pxToMm = (px: number) => px / 3.78;
   const contentWidthMm = pxToMm(canvas.width);
   const contentHeightMm = pxToMm(canvas.height);
 
-  // Scale to fit page width/height
+  // Scale to fit page width/height with responsive considerations
   const maxWidth = pageWidth - margin * 2;
   const maxHeight = pageHeight - margin * 2;
   const scale = Math.min(maxWidth / contentWidthMm, maxHeight / contentHeightMm);
   const renderWidth = contentWidthMm * scale;
   const renderHeight = contentHeightMm * scale;
 
-  const pdf = new jsPDF('p', 'mm', 'a4');
+  const pdf = new jsPDF({
+    orientation: contentHeightMm > contentWidthMm ? 'portrait' : 'landscape',
+    unit: 'mm',
+    format: 'a4'
+  });
+  
   pdf.addImage(imgData, 'PNG', margin, margin, renderWidth, renderHeight);
   pdf.save(filename);
 }
