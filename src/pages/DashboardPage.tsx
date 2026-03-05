@@ -4,33 +4,56 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { analyticsApi } from '@/db/api';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, TrendingDown, Wallet, Building2, Plus, Users, Package, FileText, TrendingUpIcon, TrendingDownIcon } from 'lucide-react';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { TrendingUp, TrendingDown, Wallet, Building2, Plus, Users, Package, FileText, TrendingUpIcon, TrendingDownIcon, Calendar, Download } from 'lucide-react';
+import CalendarFilter from '@/components/CalendarFilter';
+import { format, addDays, subDays } from 'date-fns';
+
+interface DateRange {
+  startDate: Date;
+  endDate: Date;
+}
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    startDate: subDays(new Date(), 30),
+    endDate: new Date()
+  });
+  const [currentPreset, setCurrentPreset] = useState('month');
   const [summary, setSummary] = useState({
     todaySales: 0,
     todayPurchases: 0,
     totalCash: 0,
     totalBank: 0,
   });
+  const [rangeData, setRangeData] = useState<any>(null);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [dateRange]);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [summaryData, trendsData] = await Promise.all([
-        analyticsApi.getDashboardSummary(),
-        analyticsApi.getMonthlyTrends(6),
-      ]);
-
+      
+      // Get today's summary
+      const summaryData = await analyticsApi.getDashboardSummary();
       setSummary(summaryData);
+
+      // Get range data based on selected dates
+      const startDateStr = format(dateRange.startDate, 'yyyy-MM-dd');
+      const endDateStr = format(dateRange.endDate, 'yyyy-MM-dd');
+      const rangeAnalytics = await analyticsApi.getDateRangeData(startDateStr, endDateStr);
+      setRangeData(rangeAnalytics);
+
+      // Get monthly trends for charts
+      const months = currentPreset === 'year' ? 12 : 
+                    currentPreset === '6months' ? 6 : 
+                    currentPreset === '3months' ? 3 : 6;
+      const trendsData = await analyticsApi.getMonthlyTrends(months);
       
       // Format monthly data for charts
       const formattedData = trendsData.map(item => ({
@@ -48,13 +71,66 @@ export default function DashboardPage() {
     }
   };
 
+  const handleDateRangeChange = (range: DateRange) => {
+    setDateRange(range);
+  };
+
+  const handlePresetChange = (preset: string) => {
+    setCurrentPreset(preset);
+  };
+
+  const handleClearAll = () => {
+    // Reset to default state
+    setDateRange({
+      startDate: subDays(new Date(), 30),
+      endDate: new Date()
+    });
+    setCurrentPreset('month');
+  };
+
   const formatCurrency = (amount: number) => {
     return `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   };
 
+  const exportData = () => {
+    if (!rangeData) return;
+    
+    const csvContent = [
+      ['Date', 'Sales', 'Purchases', 'Profit'],
+      ...rangeData.dailyData.map((item: any) => [
+        item.date,
+        item.sales,
+        item.purchases,
+        item.profit
+      ])
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dashboard-data-${format(dateRange.startDate, 'yyyy-MM-dd')}-to-${format(dateRange.endDate, 'yyyy-MM-dd')}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="container max-w-6xl mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <Button onClick={exportData} disabled={loading || !rangeData} className="w-full sm:w-auto">
+          <Download className="h-4 w-4 mr-2" />
+          Export Data
+        </Button>
+      </div>
+
+      {/* Calendar Filter */}
+      <CalendarFilter
+        onDateRangeChange={handleDateRangeChange}
+        onPresetChange={handlePresetChange}
+        onClearAll={handleClearAll}
+        loading={loading}
+      />
 
       {/* Action Boxes */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -192,10 +268,85 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* Range Summary */}
+      {rangeData && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Period Sales
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xl font-bold text-success">{formatCurrency(rangeData.summary.totalSales)}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {rangeData.summary.salesCount} transactions
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Period Purchases
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xl font-bold text-warning">{formatCurrency(rangeData.summary.totalPurchases)}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {rangeData.summary.purchasesCount} transactions
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Period Profit
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className={`text-xl font-bold ${rangeData.summary.totalProfit >= 0 ? 'text-success' : 'text-danger'}`}>
+                {formatCurrency(rangeData.summary.totalProfit)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {rangeData.summary.totalProfit >= 0 ? 'Profit' : 'Loss'}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Period Range
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm font-medium">
+                {format(dateRange.startDate, 'MMM dd, yyyy')}
+              </p>
+              <p className="text-sm font-medium">
+                to {format(dateRange.endDate, 'MMM dd, yyyy')}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Sales vs Purchases Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Sales vs Purchases (Last 6 Months)</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <span>Sales vs Purchases Analysis</span>
+            <span className="text-sm font-normal text-muted-foreground">
+              {currentPreset === 'today' ? 'Today' :
+               currentPreset === 'week' ? 'This Week' :
+               currentPreset === 'month' ? 'This Month' :
+               currentPreset === '3months' ? 'Last 3 Months' :
+               currentPreset === '6months' ? 'Last 6 Months' :
+               currentPreset === 'year' ? 'This Year' : 'Custom Range'}
+            </span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -221,7 +372,7 @@ export default function DashboardPage() {
       {/* Profit Trend Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Profit Trend</CardTitle>
+          <CardTitle>Profit Trend Analysis</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -230,24 +381,62 @@ export default function DashboardPage() {
             <p className="text-center text-muted-foreground py-20">No data available</p>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlyData}>
+              <AreaChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K`} />
                 <Tooltip formatter={(value: number) => formatCurrency(value)} />
                 <Legend />
-                <Line 
+                <Area 
                   type="monotone" 
                   dataKey="profit" 
                   stroke="hsl(var(--primary))" 
+                  fill="hsl(var(--primary))"
+                  fillOpacity={0.3}
                   strokeWidth={2}
                   name="Profit"
                 />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           )}
         </CardContent>
       </Card>
+
+      {/* Daily Breakdown (for shorter ranges) */}
+      {rangeData && rangeData.dailyData && rangeData.dailyData.length <= 31 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Daily Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="max-h-96 overflow-y-auto">
+              <div className="space-y-2">
+                {rangeData.dailyData.map((item: any, index: number) => (
+                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium">{format(new Date(item.date), 'MMM dd, yyyy')}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(item.date), 'EEEE')}
+                      </p>
+                    </div>
+                    <div className="text-right space-y-1">
+                      <p className="text-sm">
+                        <span className="text-success">Sales: {formatCurrency(item.sales)}</span>
+                      </p>
+                      <p className="text-sm">
+                        <span className="text-warning">Purchases: {formatCurrency(item.purchases)}</span>
+                      </p>
+                      <p className={`text-sm font-medium ${item.profit >= 0 ? 'text-success' : 'text-danger'}`}>
+                        Profit: {formatCurrency(item.profit)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

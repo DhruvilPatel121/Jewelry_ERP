@@ -792,4 +792,68 @@ export const analyticsApi = {
       }))
       .sort((a, b) => a.month.localeCompare(b.month));
   },
+
+  async getDateRangeData(startDate: string, endDate: string) {
+    const userId = await getCurrentUserId();
+    
+    const [sales, purchases] = await Promise.all([
+      salesApi.getAll(startDate, endDate),
+      purchasesApi.getAll(startDate, endDate),
+    ]);
+
+    const totalSales = sales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
+    const totalPurchases = purchases.reduce((sum, purchase) => sum + (purchase.amount || 0), 0);
+
+    // Group by day for detailed analysis
+    const dailyData: Record<string, { sales: number; purchases: number; profit: number }> = {};
+
+    sales.forEach(sale => {
+      const day = sale.date;
+      if (!dailyData[day]) dailyData[day] = { sales: 0, purchases: 0, profit: 0 };
+      dailyData[day].sales += sale.amount || 0;
+      dailyData[day].profit += sale.amount || 0;
+    });
+
+    purchases.forEach(purchase => {
+      const day = purchase.date;
+      if (!dailyData[day]) dailyData[day] = { sales: 0, purchases: 0, profit: 0 };
+      dailyData[day].purchases += purchase.amount || 0;
+      dailyData[day].profit -= purchase.amount || 0;
+    });
+
+    return {
+      summary: {
+        totalSales,
+        totalPurchases,
+        totalProfit: totalSales - totalPurchases,
+        salesCount: sales.length,
+        purchasesCount: purchases.length,
+      },
+      dailyData: Object.entries(dailyData)
+        .map(([date, data]) => ({
+          date,
+          ...data,
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date)),
+    };
+  },
+
+  async getYearlyData(year: number) {
+    const userId = await getCurrentUserId();
+    const startDate = `${year}-01-01`;
+    const endDate = `${year}-12-31`;
+
+    return this.getDateRangeData(startDate, endDate);
+  },
+
+  async getQuarterlyData(year: number, quarter: number) {
+    const userId = await getCurrentUserId();
+    const startMonth = (quarter - 1) * 3;
+    const endMonth = startMonth + 2;
+    
+    const startDate = `${year}-${String(startMonth + 1).padStart(2, '0')}-01`;
+    const endDate = `${year}-${String(endMonth + 1).padStart(2, '0')}-31`;
+
+    return this.getDateRangeData(startDate, endDate);
+  },
 };
