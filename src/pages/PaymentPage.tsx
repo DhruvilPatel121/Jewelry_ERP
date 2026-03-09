@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { customersApi, paymentsApi } from '@/db/api';
-import type { Customer, PaymentFormData, PaymentType, TransactionType } from '@/types';
+import type { Customer, PaymentFormData, PaymentType, TransactionType, Payment } from '@/types';
 import { ArrowLeft, Loader2, Calculator } from 'lucide-react';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
@@ -31,7 +31,12 @@ const paymentSchema = z.object({
 
 export default function PaymentPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
+  const isEdit = !!editId;
+  
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(isEdit);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [calculatedFine, setCalculatedFine] = useState(0);
 
@@ -56,6 +61,12 @@ export default function PaymentPage() {
   }, []);
 
   useEffect(() => {
+    if (isEdit && editId && customers.length > 0) {
+      loadPaymentData();
+    }
+  }, [isEdit, editId, customers.length]);
+
+  useEffect(() => {
     const subscription = form.watch((value) => {
       calculateFine(value as PaymentFormData);
     });
@@ -75,6 +86,48 @@ export default function PaymentPage() {
     }
   };
 
+  const loadPaymentData = async () => {
+    if (!editId) return;
+    
+    try {
+      const payment = await paymentsApi.getById(editId);
+      if (payment) {
+        // Pre-fill form with existing data
+        form.reset({
+          date: payment.date,
+          customer_id: payment.customer_id,
+          transaction_type: payment.transaction_type,
+          payment_type: payment.payment_type,
+          gross: payment.gross || 0,
+          purity: payment.purity || 0,
+          wast_badi_kg: payment.wast_badi_kg || 0,
+          rate: payment.rate || 0,
+          amount: payment.amount || 0,
+          remarks: payment.remarks || '',
+        });
+        
+        // Calculate initial fine
+        calculateFine({
+          date: payment.date,
+          customer_id: payment.customer_id,
+          transaction_type: payment.transaction_type,
+          payment_type: payment.payment_type,
+          gross: payment.gross || 0,
+          purity: payment.purity || 0,
+          wast_badi_kg: payment.wast_badi_kg || 0,
+          rate: payment.rate || 0,
+          amount: payment.amount || 0,
+          remarks: payment.remarks || '',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load payment data:', error);
+      toast.error('Failed to load payment data');
+    } finally {
+      setInitialLoading(false);
+    }
+  };
+
   const calculateFine = (data: PaymentFormData) => {
     const gross = data.gross || 0;
     const purity = data.purity || 0;
@@ -86,12 +139,21 @@ export default function PaymentPage() {
   const onSubmit = async (data: PaymentFormData) => {
     try {
       setLoading(true);
-      await paymentsApi.create(data);
-      toast.success(`${data.transaction_type === 'payment' ? 'Payment' : 'Receipt'} added successfully`);
+      
+      if (isEdit && editId) {
+        // Update existing payment
+        await paymentsApi.update(editId, data);
+        toast.success('Payment updated successfully');
+      } else {
+        // Create new payment
+        await paymentsApi.create(data);
+        toast.success('Payment added successfully');
+      }
+      
       navigate('/');
     } catch (error) {
-      console.error('Failed to create payment:', error);
-      toast.error('Failed to create payment');
+      console.error(`Failed to ${isEdit ? 'update' : 'create'} payment:`, error);
+      toast.error(`Failed to ${isEdit ? 'update' : 'create'} payment`);
     } finally {
       setLoading(false);
     }
@@ -103,29 +165,39 @@ export default function PaymentPage() {
         <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-2xl font-bold">Payment / Receipt</h1>
+        <h1 className="text-2xl font-bold">{isEdit ? 'Edit Payment' : 'New Payment'}</h1>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Transaction Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date *</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+      {initialLoading ? (
+        <Card>
+          <CardContent className="p-8">
+            <div className="flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading payment data...</span>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Payment Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date *</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
               <FormField
                 control={form.control}
@@ -313,13 +385,14 @@ export default function PaymentPage() {
                 </Button>
                 <Button type="submit" className="flex-1" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Save Transaction
+                  {isEdit ? 'Update Payment' : 'Save Transaction'}
                 </Button>
               </div>
             </form>
           </Form>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

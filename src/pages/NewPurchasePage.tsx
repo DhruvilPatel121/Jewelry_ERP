@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { customersApi, purchasesApi, itemsApi } from "@/db/api";
-import type { Customer, Item, SaleFormData } from "@/types";
+import type { Customer, Item, SaleFormData, Purchase } from "@/types";
 import { ArrowLeft, Loader2, Calculator } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -45,7 +45,12 @@ const saleSchema = z.object({
 
 export default function NewPurchasePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
+  const isEdit = !!editId;
+  
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(isEdit);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
@@ -79,10 +84,6 @@ export default function NewPurchasePage() {
   });
 
   useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === "customer_id") {
         const customer = customers.find((c) => c.id === value.customer_id);
@@ -97,6 +98,16 @@ export default function NewPurchasePage() {
     };
   }, [form, customers]);
 
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    if (isEdit && editId && customers.length > 0) {
+      loadPurchaseData();
+    }
+  }, [isEdit, editId, customers.length]);
+
   const loadData = async () => {
     try {
       const [customersData, itemsData] = await Promise.all([
@@ -107,6 +118,56 @@ export default function NewPurchasePage() {
       setItems(itemsData);
     } catch (error) {
       console.error("Failed to load data:", error);
+    }
+  };
+
+  const loadPurchaseData = async () => {
+    if (!editId) return;
+    
+    try {
+      const purchase = await purchasesApi.getById(editId);
+      if (purchase) {
+        // Pre-fill form with existing data
+        form.reset({
+          date: purchase.date,
+          customer_id: purchase.customer_id,
+          item_name: purchase.item_name,
+          weight: purchase.weight || 0,
+          bag: purchase.bag || 0,
+          net_weight: purchase.net_weight || 0,
+          ghat_per_kg: purchase.ghat_per_kg || 0,
+          touch: purchase.touch || 0,
+          wastage: purchase.wastage || 0,
+          pics: purchase.pics || 0,
+          rate: purchase.rate || 0,
+          remarks: purchase.remarks || "",
+        });
+        
+        // Set selected customer
+        const customer = customers.find((c) => c.id === purchase.customer_id);
+        setSelectedCustomer(customer || null);
+        
+        // Calculate initial values
+        calculateValues({
+          date: purchase.date,
+          customer_id: purchase.customer_id,
+          item_name: purchase.item_name,
+          weight: purchase.weight || 0,
+          bag: purchase.bag || 0,
+          net_weight: purchase.net_weight || 0,
+          ghat_per_kg: purchase.ghat_per_kg || 0,
+          touch: purchase.touch || 0,
+          wastage: purchase.wastage || 0,
+          pics: purchase.pics || 0,
+          rate: purchase.rate || 0,
+          remarks: purchase.remarks || "",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to load purchase data:", error);
+      toast.error("Failed to load purchase data");
+    } finally {
+      setInitialLoading(false);
     }
   };
 
@@ -148,12 +209,21 @@ export default function NewPurchasePage() {
         ...data,
         net_weight: (data.weight || 0) - (data.bag || 0),
       };
-      await purchasesApi.create(payload);
-      toast.success("Sale added successfully");
+      
+      if (isEdit && editId) {
+        // Update existing purchase
+        await purchasesApi.update(editId, payload);
+        toast.success("Purchase updated successfully");
+      } else {
+        // Create new purchase
+        await purchasesApi.create(payload);
+        toast.success("Purchase added successfully");
+      }
+      
       navigate("/");
     } catch (error) {
-      console.error("Failed to create purchase:", error);
-      toast.error("Failed to create purchase");
+      console.error(`Failed to ${isEdit ? 'update' : 'create'} purchase:`, error);
+      toast.error(`Failed to ${isEdit ? 'update' : 'create'} purchase`);
     } finally {
       setLoading(false);
     }
@@ -165,16 +235,26 @@ export default function NewPurchasePage() {
         <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-2xl font-bold">New Purchase</h1>
+        <h1 className="text-2xl font-bold">{isEdit ? 'Edit Purchase' : 'New Purchase'}</h1>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Purchase Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      {initialLoading ? (
+        <Card>
+          <CardContent className="p-8">
+            <div className="flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading purchase data...</span>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Purchase Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="date"
@@ -518,13 +598,14 @@ export default function NewPurchasePage() {
                 </Button>
                 <Button type="submit" className="flex-1" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Save Purchase
+                  {isEdit ? 'Update Purchase' : 'Save Purchase'}
                 </Button>
               </div>
             </form>
           </Form>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }
