@@ -253,19 +253,36 @@ export default function ActionButtons({
 
     return `
       <div style="font-family: Arial, sans-serif; padding: 20px; background: white; min-width: 800px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            ${company?.logo_url ? `<img src="${company.logo_url}" alt="Logo" style="height: 48px; width: 48px; object-fit: contain;" />` : ''}
-            <div>
-              <h2 style="margin: 0; font-size: 24px; font-weight: bold;">${company?.company_name || 'Company'}</h2>
-              ${company?.address ? `<p style="margin: 4px 0 0 0; font-size: 14px; color: #666;">${company.address}</p>` : ''}
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid #eee;">
+          <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
+            ${company?.logo_url ? `
+              <div style="position: relative; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border: 1px solid #ddd; border-radius: 8px; background: white; padding: 4px;">
+                <img src="${company.logo_url}" alt="Company Logo" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;" />
+              </div>
+            ` : `
+              <div style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9;">
+                <span style="font-size: 24px; color: #999; font-weight: bold;">${(company?.company_name || 'Company').charAt(0)}</span>
+              </div>
+            `}
+            <div style="flex: 1;">
+              <h2 style="margin: 0; font-size: 24px; font-weight: bold; color: #333; line-height: 1.2;">${company?.company_name || 'Company'}</h2>
+              ${company?.address ? `<p style="margin: 4px 0 0 0; font-size: 14px; color: #666; line-height: 1.4;">${company.address}</p>` : ''}
+              ${company?.phone ? `<p style="margin: 2px 0 0 0; font-size: 13px; color: #666;">📞 ${company.phone}</p>` : ''}
+              ${company?.email ? `<p style="margin: 2px 0 0 0; font-size: 13px; color: #666;">✉️ ${company.email}</p>` : ''}
             </div>
           </div>
-          <div style="text-align: right;">
-            <p style="margin: 0; font-size: 14px;"><strong>Voucher No:</strong> ${data.invoice_no || data.id}</p>
-            <p style="margin: 4px 0 0 0; font-size: 14px;"><strong>Date:</strong> ${data.date}</p>
-            <span style="display: inline-block; margin-top: 8px; padding: 4px 8px; border: 1px solid #ccc; font-size: 12px;">
-              ${isSale || isPurchase ? 'OUTGOING' : isPayment ? (data.transaction_type === 'receipt' ? 'INCOMING' : 'OUTGOING') : 'TRANSACTION'}
+          <div style="text-align: right; min-width: 200px;">
+            <div style="display: inline-block; padding: 8px 12px; background: #f8f9fa; border-radius: 6px; margin-bottom: 8px;">
+              <p style="margin: 0; font-size: 13px; color: #555;"><strong>Voucher No:</strong> ${data.invoice_no || data.id}</p>
+              <p style="margin: 4px 0 0 0; font-size: 13px; color: #555;"><strong>Date:</strong> ${data.date}</p>
+            </div>
+            <span style="display: inline-block; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">
+              ${isSale || isPurchase ? 
+                '<span style="background: #dc3545; color: white;">OUTGOING</span>' : 
+                isPayment ? 
+                  (data.transaction_type === 'receipt' ? '<span style="background: #28a745; color: white;">INCOMING</span>' : '<span style="background: #dc3545; color: white;">OUTGOING</span>') : 
+                '<span style="background: #6c757d; color: white;">TRANSACTION</span>'
+              }
             </span>
           </div>
         </div>
@@ -274,49 +291,51 @@ export default function ActionButtons({
           <p><strong>Name:</strong> ${data.customer?.name || 'Unknown'}</p>
         </div>
 
-        <table style="width: 100%; margin-top: 16px; border-collapse: collapse; font-size: 12px;">
+        <table style="width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 11px; border: 1px solid #ddd;">
           <thead>
-            <tr style="border: 1px solid #ccc;">
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Sr.</th>
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Particulars</th>
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: right;">Gross Wt</th>
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: right;">Bag Wt</th>
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: right;">Net Wt</th>
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: right;">Touch</th>
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: right;">Wast</th>
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: right;">Fine</th>
-              ${isSale || isPurchase ? '<th style="border: 1px solid #ccc; padding: 8px; text-align: right;">Pc/Pair</th>' : ''}
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: right;">Rate</th>
-              <th style="border: 1px solid #ccc; padding: 8px; text-align: right;">Cash</th>
+            <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: left; font-weight: 600; color: #495057; white-space: nowrap;">Sr.</th>
+              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: left; font-weight: 600; color: #495057;">Particulars</th>
+              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Gross Wt</th>
+              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Bag Wt</th>
+              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Net Wt</th>
+              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Touch</th>
+              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Wast</th>
+              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Fine</th>
+              ${isSale || isPurchase ? '<th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Pc/Pair</th>' : ''}
+              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Rate</th>
+              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Cash</th>
             </tr>
           </thead>
           <tbody>
-            <tr style="border: 1px solid #ccc;">
-              <td style="border: 1px solid #ccc; padding: 8px; text-align: center;">1</td>
-              <td style="border: 1px solid #ccc; padding: 8px;">${data.item_name || (data.payment_type || '').replace('_', ' ')}</td>
-              <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">${(data.weight || 0).toFixed(2)}</td>
-              <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">${(data.bag || 0).toFixed(2)}</td>
-              <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">
+            <tr style="border: 1px solid #ddd; background: white;">
+              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: center; vertical-align: middle;">1</td>
+              <td style="border: 1px solid #ddd; padding: 8px 6px; vertical-align: middle;">${data.item_name || (data.payment_type || '').replace('_', ' ')}</td>
+              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.weight || 0).toFixed(2)}</td>
+              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.bag || 0).toFixed(2)}</td>
+              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">
                 ${((data.net_weight || (data.weight || 0) - (data.bag || 0)).toFixed(2))}
               </td>
-              <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">${(data.touch || 0).toFixed(2)}</td>
-              <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">${(data.wastage || 0).toFixed(2)}</td>
-              <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">${(data.fine || 0).toFixed(2)}</td>
-              ${isSale || isPurchase ? `<td style="border: 1px solid #ccc; padding: 8px; text-align: right;">${(data.pics || 0).toFixed(2)}</td>` : ''}
-              <td style="border: 1px solid #ccc; padding: 8px; text-align: right;">${(data.rate || 0).toFixed(2)}</td>
-              <td style="border: 1px solid #ccc; padding: 8px; text-align: right; font-weight: bold;">${(data.amount || 0).toFixed(2)}</td>
+              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.touch || 0).toFixed(2)}</td>
+              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.wastage || 0).toFixed(2)}</td>
+              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.fine || 0).toFixed(2)}</td>
+              ${isSale || isPurchase ? `<td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.pics || 0).toFixed(2)}</td>` : ''}
+              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.rate || 0).toFixed(2)}</td>
+              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle; font-weight: bold; background: #f8f9fa;">${(data.amount || 0).toFixed(2)}</td>
             </tr>
           </tbody>
         </table>
 
-        <div style="margin-top: 20px; display: flex; justify-content: space-between;">
-          <div>
-            <p><strong>Opening Amount:</strong> ₹${openingAmount.toLocaleString('en-IN')}</p>
-            <p><strong>Opening Fine:</strong> ${(openingFine || 0).toFixed(3)}g</p>
-          </div>
-          <div style="text-align: right;">
-            <p><strong>Closing Amount:</strong> ₹${closingAmount.toLocaleString('en-IN')}</p>
-            <p><strong>Closing Fine:</strong> ${(closingFine || 0).toFixed(3)}g</p>
+        <div style="margin-top: 24px; padding: 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <p style="margin: 0; font-size: 13px; color: #495057;"><strong>Opening Amount:</strong> ₹${openingAmount.toLocaleString('en-IN')}</p>
+              <p style="margin: 4px 0 0 0; font-size: 13px; color: #495057;"><strong>Opening Fine:</strong> ${(openingFine || 0).toFixed(3)}g</p>
+            </div>
+            <div style="text-align: right;">
+              <p style="margin: 0; font-size: 13px; color: #495057;"><strong>Closing Amount:</strong> ₹${closingAmount.toLocaleString('en-IN')}</p>
+              <p style="margin: 4px 0 0 0; font-size: 13px; color: #495057;"><strong>Closing Fine:</strong> ${(closingFine || 0).toFixed(3)}g</p>
+            </div>
           </div>
         </div>
       </div>

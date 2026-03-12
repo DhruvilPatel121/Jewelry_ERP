@@ -34,6 +34,7 @@ export default function PaymentPage() {
   const [searchParams] = useSearchParams();
   const editId = searchParams.get('edit');
   const isEdit = !!editId;
+  const customerId = searchParams.get('customer'); // Get customer ID if provided
   
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEdit);
@@ -136,6 +137,13 @@ export default function PaymentPage() {
     setCalculatedFine(fine);
   };
 
+  const getBackUrl = () => {
+    if (customerId) {
+      return `/customer/${customerId}`;
+    }
+    return '/';
+  };
+
   const onSubmit = async (data: PaymentFormData) => {
     try {
       setLoading(true);
@@ -150,7 +158,7 @@ export default function PaymentPage() {
         toast.success('Payment added successfully');
       }
       
-      navigate('/');
+      navigate(getBackUrl());
     } catch (error) {
       console.error(`Failed to ${isEdit ? 'update' : 'create'} payment:`, error);
       toast.error(`Failed to ${isEdit ? 'update' : 'create'} payment`);
@@ -162,7 +170,7 @@ export default function PaymentPage() {
   return (
     <div className="container max-w-2xl mx-auto p-4 space-y-6 pb-24">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(getBackUrl())}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-2xl font-bold">{isEdit ? 'Edit Payment' : 'New Payment'}</h1>
@@ -378,7 +386,7 @@ export default function PaymentPage() {
                   type="button"
                   variant="outline"
                   className="flex-1"
-                  onClick={() => navigate('/')}
+                  onClick={() => navigate(getBackUrl())}
                   disabled={loading}
                 >
                   Cancel

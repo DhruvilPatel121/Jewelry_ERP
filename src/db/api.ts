@@ -671,6 +671,26 @@ export const expensesApi = {
     
     if (error) throw error;
   },
+
+  async update(id: string, formData: Partial<ExpenseFormData>): Promise<Expense> {
+    const { data: existing, error: getErr } = await supabase
+      .from('expenses')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (getErr) throw getErr;
+    if (!existing) throw new Error('Expense not found');
+
+    const { data, error: updateErr } = await supabase
+      .from('expenses')
+      .update(formData)
+      .eq('id', id)
+      .select()
+      .single();
+    if (updateErr) throw updateErr;
+    
+    return data;
+  },
 };
 
 // Company Settings API

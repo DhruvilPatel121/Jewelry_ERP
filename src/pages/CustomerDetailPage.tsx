@@ -11,6 +11,8 @@ import { ArrowLeft, Edit, Phone, MapPin, FileText, RefreshCcw, Trash2, MoreVerti
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import ActionButtons from '@/components/ActionButtons';
+import PaymentEditDialog from '@/components/PaymentEditDialog';
+import ExpenseEditDialog from '@/components/ExpenseEditDialog';
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +22,12 @@ export default function CustomerDetailPage() {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Dialog states
+  const [paymentEditDialogOpen, setPaymentEditDialogOpen] = useState(false);
+  const [expenseEditDialogOpen, setExpenseEditDialogOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [selectedExpense, setSelectedExpense] = useState<any>(null);
 
   useEffect(() => {
     if (id) {
@@ -113,6 +121,27 @@ export default function CustomerDetailPage() {
       console.error('Failed to delete payment:', error);
       toast.error('Failed to delete payment');
     }
+  };
+
+  // Dialog handlers
+  const handleEditPayment = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setPaymentEditDialogOpen(true);
+  };
+
+  const handleEditExpense = (expense: any) => {
+    setSelectedExpense(expense);
+    setExpenseEditDialogOpen(true);
+  };
+
+  const handlePaymentEditSuccess = async () => {
+    await loadData();
+    setSelectedPayment(null);
+  };
+
+  const handleExpenseEditSuccess = async () => {
+    await loadData();
+    setSelectedExpense(null);
   };
 
   if (loading) {
@@ -287,10 +316,13 @@ export default function CustomerDetailPage() {
                               type={transaction.type}
                               id={transaction.id}
                               onEdit={() => {
-                                const editRoute = transaction.type === 'sale' ? '/new-sale' : 
-                                                 transaction.type === 'purchase' ? '/new-purchase' : 
-                                                 '/new-payment';
-                                navigate(`${editRoute}?edit=${transaction.id}`);
+                                if (transaction.type === 'sale') {
+                                  navigate(`/new-sale?edit=${transaction.id}`);
+                                } else if (transaction.type === 'purchase') {
+                                  navigate(`/new-purchase?edit=${transaction.id}`);
+                                } else if (transaction.type === 'payment') {
+                                  handleEditPayment(transaction as Payment);
+                                }
                               }}
                               onDelete={() => {
                                 if (transaction.type === 'sale') handleDeleteSale(transaction.id);
@@ -395,7 +427,7 @@ export default function CustomerDetailPage() {
                           <ActionButtons
                             type="payment"
                             id={payment.id}
-                            onEdit={() => navigate(`/new-payment?edit=${payment.id}`)}
+                            onEdit={() => handleEditPayment(payment)}
                             onDelete={() => handleDeletePayment(payment.id)}
                           />
                         </div>
@@ -408,6 +440,21 @@ export default function CustomerDetailPage() {
           </Tabs>
         </CardContent>
       </Card>
+
+      {/* Edit Dialogs */}
+      <PaymentEditDialog
+        open={paymentEditDialogOpen}
+        onOpenChange={setPaymentEditDialogOpen}
+        payment={selectedPayment}
+        onSuccess={handlePaymentEditSuccess}
+      />
+
+      <ExpenseEditDialog
+        open={expenseEditDialogOpen}
+        onOpenChange={setExpenseEditDialogOpen}
+        expense={selectedExpense}
+        onSuccess={handleExpenseEditSuccess}
+      />
     </div>
   );
 }
