@@ -277,10 +277,8 @@ export default function ActionButtons({
               <p style="margin: 4px 0 0 0; font-size: 13px; color: #555;"><strong>Date:</strong> ${data.date}</p>
             </div>
             <span style="display: inline-block; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">
-              ${isSale || isPurchase ? 
-                '<span style="background: #dc3545; color: white;">OUTGOING</span>' : 
-                isPayment ? 
-                  (data.transaction_type === 'receipt' ? '<span style="background: #28a745; color: white;">INCOMING</span>' : '<span style="background: #dc3545; color: white;">OUTGOING</span>') : 
+              ${isPayment ? 
+                (data.transaction_type === 'receipt' ? '<span style="background: #28a745; color: white;">RECEIPT</span>' : '<span style="background: #dc3545; color: white;">PAYMENT</span>') : 
                 '<span style="background: #6c757d; color: white;">TRANSACTION</span>'
               }
             </span>
@@ -291,53 +289,100 @@ export default function ActionButtons({
           <p><strong>Name:</strong> ${data.customer?.name || 'Unknown'}</p>
         </div>
 
-        <table style="width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 11px; border: 1px solid #ddd;">
-          <thead>
-            <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
-              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: left; font-weight: 600; color: #495057; white-space: nowrap;">Sr.</th>
-              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: left; font-weight: 600; color: #495057;">Particulars</th>
-              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Gross Wt</th>
-              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Bag Wt</th>
-              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Net Wt</th>
-              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Touch</th>
-              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Wast</th>
-              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Fine</th>
-              ${isSale || isPurchase ? '<th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Pc/Pair</th>' : ''}
-              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Rate</th>
-              <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Cash</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr style="border: 1px solid #ddd; background: white;">
-              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: center; vertical-align: middle;">1</td>
-              <td style="border: 1px solid #ddd; padding: 8px 6px; vertical-align: middle;">${data.item_name || (data.payment_type || '').replace('_', ' ')}</td>
-              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.weight || 0).toFixed(2)}</td>
-              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.bag || 0).toFixed(2)}</td>
-              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">
-                ${((data.net_weight || (data.weight || 0) - (data.bag || 0)).toFixed(2))}
-              </td>
-              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.touch || 0).toFixed(2)}</td>
-              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.wastage || 0).toFixed(2)}</td>
-              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.fine || 0).toFixed(2)}</td>
-              ${isSale || isPurchase ? `<td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.pics || 0).toFixed(2)}</td>` : ''}
-              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.rate || 0).toFixed(2)}</td>
-              <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle; font-weight: bold; background: #f8f9fa;">${(data.amount || 0).toFixed(2)}</td>
-            </tr>
-          </tbody>
-        </table>
+        ${isPayment ? `
+          <table style="width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 12px; border: 1px solid #ddd;">
+            <thead>
+              <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                <th style="border: 1px solid #ddd; padding: 12px 8px; text-align: left; font-weight: 600; color: #495057;">Particulars</th>
+                <th style="border: 1px solid #ddd; padding: 12px 8px; text-align: right; font-weight: 600; color: #495057;">Gross</th>
+                <th style="border: 1px solid #ddd; padding: 12px 8px; text-align: right; font-weight: 600; color: #495057;">Purity (%)</th>
+                <th style="border: 1px solid #ddd; padding: 12px 8px; text-align: right; font-weight: 600; color: #495057;">Wast Badi (kg)</th>
+                <th style="border: 1px solid #ddd; padding: 12px 8px; text-align: right; font-weight: 600; color: #495057;">Rate</th>
+                <th style="border: 1px solid #ddd; padding: 12px 8px; text-align: right; font-weight: 600; color: #495057;">Fine</th>
+                <th style="border: 1px solid #ddd; padding: 12px 8px; text-align: right; font-weight: 600; color: #495057;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border: 1px solid #ddd; background: white;">
+                <td style="border: 1px solid #ddd; padding: 12px 8px; vertical-align: middle;">${(data.payment_type || '').replace('_', ' ')}</td>
+                <td style="border: 1px solid #ddd; padding: 12px 8px; text-align: right; vertical-align: middle;">${(data.gross || 0).toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 12px 8px; text-align: right; vertical-align: middle;">${(data.purity || 0).toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 12px 8px; text-align: right; vertical-align: middle;">${(data.wast_badi_kg || 0).toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 12px 8px; text-align: right; vertical-align: middle;">${(data.rate || 0).toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 12px 8px; text-align: right; vertical-align: middle;">${(data.fine || 0).toFixed(3)}g</td>
+                <td style="border: 1px solid #ddd; padding: 12px 8px; text-align: right; vertical-align: middle; font-weight: bold; background: #f8f9fa;">${(data.amount || 0).toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
 
-        <div style="margin-top: 24px; padding: 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-              <p style="margin: 0; font-size: 13px; color: #495057;"><strong>Opening Amount:</strong> ₹${openingAmount.toLocaleString('en-IN')}</p>
-              <p style="margin: 4px 0 0 0; font-size: 13px; color: #495057;"><strong>Opening Fine:</strong> ${(openingFine || 0).toFixed(3)}g</p>
+          ${data.remarks ? `
+            <div style="margin-top: 16px;">
+              <p style="font-size: 13px; color: #495057;"><strong>Remarks:</strong> ${data.remarks}</p>
             </div>
-            <div style="text-align: right;">
-              <p style="margin: 0; font-size: 13px; color: #495057;"><strong>Closing Amount:</strong> ₹${closingAmount.toLocaleString('en-IN')}</p>
-              <p style="margin: 4px 0 0 0; font-size: 13px; color: #495057;"><strong>Closing Fine:</strong> ${(closingFine || 0).toFixed(3)}g</p>
+          ` : ''}
+
+          <div style="margin-top: 24px; padding: 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <p style="margin: 0; font-size: 13px; color: #495057;"><strong>Opening Amount:</strong> ₹${openingAmount.toLocaleString('en-IN')}</p>
+                <p style="margin: 4px 0 0 0; font-size: 13px; color: #495057;"><strong>Opening Fine:</strong> ${(openingFine || 0).toFixed(3)}g</p>
+              </div>
+              <div style="text-align: right;">
+                <p style="margin: 0; font-size: 13px; color: #495057;"><strong>Closing Amount:</strong> ₹${closingAmount.toLocaleString('en-IN')}</p>
+                <p style="margin: 4px 0 0 0; font-size: 13px; color: #495057;"><strong>Closing Fine:</strong> ${(closingFine || 0).toFixed(3)}g</p>
+              </div>
             </div>
           </div>
-        </div>
+        ` : `
+          <!-- Sales/Purchase table structure remains the same -->
+          <table style="width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 11px; border: 1px solid #ddd;">
+            <thead>
+              <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: left; font-weight: 600; color: #495057; white-space: nowrap;">Sr.</th>
+                <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: left; font-weight: 600; color: #495057;">Particulars</th>
+                <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Gross Wt</th>
+                <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Bag Wt</th>
+                <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Net Wt</th>
+                <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Touch</th>
+                <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Wast</th>
+                <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Fine</th>
+                ${isSale || isPurchase ? '<th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Pc/Pair</th>' : ''}
+                <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Rate</th>
+                <th style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; font-weight: 600; color: #495057; white-space: nowrap;">Cash</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border: 1px solid #ddd; background: white;">
+                <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: center; vertical-align: middle;">1</td>
+                <td style="border: 1px solid #ddd; padding: 8px 6px; vertical-align: middle;">${data.item_name || (data.payment_type || '').replace('_', ' ')}</td>
+                <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.weight || 0).toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.bag || 0).toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">
+                  ${((data.net_weight || (data.weight || 0) - (data.bag || 0)).toFixed(2))}
+                </td>
+                <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.touch || 0).toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.wastage || 0).toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.fine || 0).toFixed(2)}</td>
+                ${isSale || isPurchase ? `<td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.pics || 0).toFixed(2)}</td>` : ''}
+                <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle;">${(data.rate || 0).toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 8px 6px; text-align: right; vertical-align: middle; font-weight: bold; background: #f8f9fa;">${(data.amount || 0).toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div style="margin-top: 24px; padding: 16px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <p style="margin: 0; font-size: 13px; color: #495057;"><strong>Opening Amount:</strong> ₹${openingAmount.toLocaleString('en-IN')}</p>
+                <p style="margin: 4px 0 0 0; font-size: 13px; color: #495057;"><strong>Opening Fine:</strong> ${(openingFine || 0).toFixed(3)}g</p>
+              </div>
+              <div style="text-align: right;">
+                <p style="margin: 0; font-size: 13px; color: #495057;"><strong>Closing Amount:</strong> ₹${closingAmount.toLocaleString('en-IN')}</p>
+                <p style="margin: 4px 0 0 0; font-size: 13px; color: #495057;"><strong>Closing Fine:</strong> ${(closingFine || 0).toFixed(3)}g</p>
+              </div>
+            </div>
+          </div>
+        `}
       </div>
     `;
   };
