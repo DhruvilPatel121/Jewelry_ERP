@@ -29,7 +29,9 @@ export default function ExpenseInvoicePage() {
 
   useEffect(() => {
     const download = async () => {
-      if (expense && !autoDownloaded) {
+      if (expense && company && !autoDownloaded) {
+        // Add a small delay to ensure all elements are rendered
+        await new Promise(resolve => setTimeout(resolve, 1000));
         await ensurePdfLibsLoaded();
         const el = document.getElementById("invoice-root");
         if (el) {
@@ -40,7 +42,7 @@ export default function ExpenseInvoicePage() {
       }
     };
     download();
-  }, [expense, autoDownloaded]);
+  }, [expense, company, autoDownloaded]);
 
   const downloadPdf = async () => {
     await ensurePdfLibsLoaded();
@@ -49,6 +51,16 @@ export default function ExpenseInvoicePage() {
       await downloadElementAsPdf(el, `Expense_${expense?.id}.pdf`);
     }
   };
+  // Format date as DD-MM-YYYY
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
   if (!expense) return <div className="p-6">Loading...</div>;
 
   return (
@@ -79,9 +91,16 @@ export default function ExpenseInvoicePage() {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm">
-              <span className="font-semibold">Date:</span> {expense.date}
-            </p>
+            <div className="bg-gray-50 border border-gray-200 rounded p-3 mb-3">
+              <p className="text-sm font-bold text-gray-900">
+                <span className="text-gray-600">Date:</span> {formatDate(expense.date)}
+              </p>
+            </div>
+            <div className="inline-block">
+              <span className="px-4 py-2 bg-orange-100 text-orange-800 border border-orange-300 rounded font-bold text-sm">
+                EXPENSE
+              </span>
+            </div>
           </div>
         </div>
 
@@ -108,9 +127,15 @@ export default function ExpenseInvoicePage() {
           </tbody>
         </table>
 
-        <div className="mt-6 text-right text-sm">
-          <p>Printed on {new Date().toLocaleString("en-IN")}</p>
-          <p className="mt-2">For, {company?.company_name || "Company"}</p>
+        <div className="mt-8 text-right text-sm border-t pt-4">
+          <div className="inline-block">
+            <p className="text-black" style={{ fontSize: '14px', marginBottom: '4px' }}>
+              Printed on: {formatDate(new Date().toISOString().split('T')[0])}
+            </p>
+            <p className="text-black" style={{ fontSize: '14px' }}>
+              For: {company?.company_name || "Company"}
+            </p>
+          </div>
         </div>
       </div>
     </div>

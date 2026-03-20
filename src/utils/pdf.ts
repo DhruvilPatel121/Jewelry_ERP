@@ -39,9 +39,12 @@ export async function downloadElementAsPdf(element: HTMLElement, filename: strin
   // Detect if mobile device
   const isMobile = window.innerWidth <= 768;
   
-  // Responsive canvas settings
+  // Add a small delay to ensure all elements are rendered
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // Enhanced canvas settings for better text rendering
   const canvas = await html2canvas(element, {
-    scale: isMobile ? 3 : 2, // Higher scale for mobile to maintain quality
+    scale: isMobile ? 4 : 3, // Higher scale for better text clarity
     useCORS: true,
     backgroundColor: '#ffffff',
     width: element.scrollWidth,
@@ -50,6 +53,20 @@ export async function downloadElementAsPdf(element: HTMLElement, filename: strin
     windowHeight: element.scrollHeight,
     scrollX: 0,
     scrollY: 0,
+    logging: false,
+    removeContainer: false,
+    foreignObjectRendering: false,
+    imageTimeout: 15000,
+    onclone: (clonedDoc) => {
+      // Ensure all text is black for PDF rendering
+      const allElements = clonedDoc.querySelectorAll('*');
+      allElements.forEach((el) => {
+        const computedStyle = window.getComputedStyle(el);
+        if (computedStyle.color && computedStyle.color !== 'rgb(0, 0, 0)') {
+          (el as HTMLElement).style.color = '#000000';
+        }
+      });
+    }
   });
 
   const imgData = canvas.toDataURL('image/png', 1.0);

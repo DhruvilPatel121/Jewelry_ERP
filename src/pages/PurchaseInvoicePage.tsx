@@ -40,7 +40,9 @@ export default function PurchaseInvoicePage() {
 
   useEffect(() => {
     const download = async () => {
-      if (purchase && !autoDownloaded) {
+      if (purchase && company && !autoDownloaded) {
+        // Add a small delay to ensure all elements are rendered
+        await new Promise(resolve => setTimeout(resolve, 1000));
         await ensurePdfLibsLoaded();
         const el = document.getElementById("invoice-root");
         if (el) {
@@ -51,7 +53,7 @@ export default function PurchaseInvoicePage() {
       }
     };
     download();
-  }, [purchase, autoDownloaded]);
+  }, [purchase, company, autoDownloaded]);
 
   const downloadPdf = async () => {
     await ensurePdfLibsLoaded();
@@ -59,6 +61,16 @@ export default function PurchaseInvoicePage() {
     if (el) {
       await downloadElementAsPdf(el, `Purchase_${purchase?.invoice_no}.pdf`);
     }
+  };
+
+  // Format date as DD-MM-YYYY
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
   };
 
   if (!purchase) return <div className="p-6">Loading...</div>;
@@ -96,16 +108,20 @@ export default function PurchaseInvoicePage() {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm">
-              <span className="font-semibold">Voucher No:</span>{" "}
-              {purchase.invoice_no}
-            </p>
-            <p className="text-sm">
-              <span className="font-semibold">Date:</span> {purchase.date}
-            </p>
-            <span className="inline-block mt-2 px-3 py-1 border text-sm">
-              INCOMING
-            </span>
+            <div className="bg-gray-50 border border-gray-200 rounded p-3 mb-3">
+              <p className="text-sm font-bold text-gray-900">
+                <span className="text-gray-600">Voucher No:</span>{" "}
+                {purchase.invoice_no}
+              </p>
+              <p className="text-sm font-bold text-gray-900 mt-1">
+                <span className="text-gray-600">Date:</span> {formatDate(purchase.date)}
+              </p>
+            </div>
+            <div className="inline-block">
+              <span className="px-4 py-2 bg-green-100 text-green-800 border border-green-300 rounded font-bold text-sm">
+                INCOMING
+              </span>
+            </div>
           </div>
         </div>
 
@@ -234,9 +250,15 @@ export default function PurchaseInvoicePage() {
           </div>
         </div>
 
-        <div className="mt-6 text-right text-sm">
-          <p>Printed on {new Date().toLocaleString("en-IN")}</p>
-          <p className="mt-2">For, {company?.company_name || "Company"}</p>
+        <div className="mt-8 text-right text-sm border-t pt-4">
+          <div className="inline-block">
+            <p className="text-black" style={{ fontSize: '14px', marginBottom: '4px' }}>
+              Printed on: {formatDate(new Date().toISOString().split('T')[0])}
+            </p>
+            <p className="text-black" style={{ fontSize: '14px' }}>
+              For: {company?.company_name || "Company"}
+            </p>
+          </div>
         </div>
       </div>
     </div>
