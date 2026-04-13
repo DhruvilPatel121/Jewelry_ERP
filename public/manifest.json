@@ -1,7 +1,7 @@
 {
-  "name": "Jewelry ERP - Accounting System",
-  "short_name": "Jewelry ERP",
-  "description": "Complete jewelry business accounting and ERP management system",
+  "name": "SilvonX - Accounting System",
+  "short_name": "SilvonX",
+  "description": "Complete business accounting and ERP management system",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -1,13 +1,17 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Gem } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { Copyright } from '@/components/common/Copyright';
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
@@ -59,12 +63,16 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
-              <Gem className="w-8 h-8 text-primary-foreground" />
+            <div className="w-20 h-20 rounded-2xl bg-primary flex items-center justify-center overflow-hidden shadow-lg">
+              <img 
+                src="/favicon.png" 
+                alt="SilvonX Logo" 
+                className="w-14 h-14 object-contain"
+              />
             </div>
           </div>
           <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
-          <CardDescription>Register for Jewelry ERP</CardDescription>
+          <CardDescription>Register for SilvonX</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -126,6 +134,9 @@ export default function RegisterPage() {
             </p>
           </CardFooter>
         </form>
+        <CardFooter className="pt-0">
+          <Copyright />
+        </CardFooter>
       </Card>
     </div>
   );

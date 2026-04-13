@@ -247,8 +247,14 @@ export default function SaleInvoicePage() {
             <p className="text-black" style={{ fontSize: '14px', marginBottom: '4px' }}>
               Printed on: {formatDate(new Date().toISOString().split('T')[0])}
             </p>
-            <p className="text-black" style={{ fontSize: '14px' }}>
+            <p className="text-black" style={{ fontSize: '14px', marginBottom: '4px' }}>
               For: {company?.company_name || "Company"}
+            </p>
+            <p className="text-black" style={{ fontSize: '12px', marginTop: '8px' }}>
+              Handcrafted by Shivvilon Solutions
+            </p>
+            <p className="text-black" style={{ fontSize: '12px' }}>
+              © {new Date().getFullYear()} SilvonX. All rights reserved.
             </p>
           </div>
         </div>

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/FirebaseAuthContext';
-import { Building2, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function CompanySetupPage() {
@@ -39,12 +39,16 @@ export default function CompanySetupPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <Building2 className="h-8 w-8 text-primary" />
+          <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4 overflow-hidden shadow-lg">
+            <img 
+              src="/favicon.png" 
+              alt="SilvonX Logo" 
+              className="w-14 h-14 object-contain"
+            />
           </div>
           <CardTitle className="text-2xl">Setup Your Company</CardTitle>
           <CardDescription>
-            Create your company to start managing your jewelry business
+            Create your company to start managing your business
           </CardDescription>
         </CardHeader>
         <CardContent>

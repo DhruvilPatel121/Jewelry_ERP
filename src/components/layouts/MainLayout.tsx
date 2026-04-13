@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Home, LayoutDashboard, Package, Menu as MenuIcon, User, LogOut, Gem } from 'lucide-react';
+import { Home, LayoutDashboard, Package, Menu as MenuIcon, User, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MainLayoutProps {
@@ -40,11 +40,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
       <header className="sticky top-0 z-50 w-full border-b bg-card">
         <div className="flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-              <Gem className="w-5 h-5 text-primary-foreground" />
+            <div className="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden">
+              <img 
+                src="/favicon.png" 
+                alt="SilvonX Logo" 
+                className="w-12 h-12 object-contain"
+              />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground">Jewelry ERP</h1>
+              <h1 className="text-lg font-bold text-foreground">SilvonX</h1>
               <p className="text-xs text-muted-foreground">{profile?.company_name || 'Accounting System'}</p>
             </div>
           </div>
