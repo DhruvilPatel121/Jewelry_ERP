@@ -68,15 +68,18 @@ export default function PaymentPage() {
   }, [isEdit, editId, customers.length]);
 
   useEffect(() => {
-    const subscription = form.watch((value) => {
-      calculateFine(value as PaymentFormData);
+    const subscription = form.watch((value, { name }) => {
+      // Calculate fine when relevant fields change
+      if (name === 'gross' || name === 'purity' || name === 'wast_badi_kg') {
+        calculateFine(value as PaymentFormData);
+      }
     });
     return () => {
       if (subscription && typeof subscription.unsubscribe === 'function') {
         subscription.unsubscribe();
       }
     };
-  }, [form]);
+  }, [form, calculateFine]);
 
   const loadCustomers = async () => {
     try {
@@ -130,10 +133,21 @@ export default function PaymentPage() {
   };
 
   const calculateFine = (data: PaymentFormData) => {
-    const gross = data.gross || 0;
-    const purity = data.purity || 0;
-    // Fine = Gross × Purity / 100
-    const fine = gross * purity / 100;
+    const gross = parseFloat(String(data.gross || 0));
+    const purity = parseFloat(String(data.purity || 0));
+    const wastage = parseFloat(String(data.wast_badi_kg || 0));
+    // Fine = (Purity + Wastage) * Gross / 100
+    const fine = (purity + wastage) * gross / 100;
+    
+    // Debug logging for fine calculation
+    console.log('Payment Fine Calculation Debug:', {
+      gross,
+      purity,
+      wastage,
+      fine,
+      formula: `(${purity} + ${wastage}) * ${gross} / 100 = ${fine}`
+    });
+    
     setCalculatedFine(fine);
   };
 

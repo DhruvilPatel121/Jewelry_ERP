@@ -89,7 +89,10 @@ export default function NewSalePage() {
         const customer = customers.find((c) => c.id === value.customer_id);
         setSelectedCustomer(customer || null);
       }
-      setTimeout(() => calculateValues(form.getValues() as SaleFormData), 0);
+      // Calculate fine when relevant fields change
+      if (name === 'weight' || name === 'bag' || name === 'ghat_per_kg' || name === 'touch' || name === 'wastage') {
+        setTimeout(() => calculateValues(form.getValues() as SaleFormData), 0);
+      }
     });
     return () => {
       if (subscription && typeof subscription.unsubscribe === "function") {
@@ -172,30 +175,31 @@ export default function NewSalePage() {
   };
 
   const calculateValues = (data: SaleFormData) => {
-    const weight = data.weight || 0;
-    const bag = data.bag || 0;
+    const weight = parseFloat(String(data.weight || 0));
+    const bag = parseFloat(String(data.bag || 0));
+    const ghatPerKg = parseFloat(String(data.ghat_per_kg || 0));
+    const touch = parseFloat(String(data.touch || 0));
+    const wastage = parseFloat(String(data.wastage || 0));
+    const rate = parseFloat(String(data.rate || 0));
+    
     // Net Weight = Weight - Bag
     const netWeight = weight - bag;
-
-    // Update net_weight field if it differs (avoid infinite loop by checking)
-    if (data.net_weight !== netWeight) {
-      // We don't set value here to avoid loop, just use calculated netWeight
-      // But UI needs to show it. form.setValue might trigger watch.
-      // Better to let user see calculated value or just set it.
-      // If we set it, it triggers watch again.
-      // We can check if the change is significant.
-    }
-
-    const ghatPerKg = data.ghat_per_kg || 0;
-    const touch = data.touch || 0;
-    const wastage = data.wastage || 0;
-    const rate = data.rate || 0;
 
     // Total Ghat = (Net Weight * Ghat) / 1000
     const totalGhat = (netWeight * ghatPerKg) / 1000;
 
-    // Fine = (Net Weight + Total Ghat) * Touch / 100
-    const fine = (netWeight + totalGhat) * touch / 100;
+    // Fine = (Touch + Wastage) * (Net Weight + Total Ghat) / 100
+    const fine = (touch + wastage) * (netWeight + totalGhat) / 100;
+    
+    // Debug logging for fine calculation
+    console.log('Fine Calculation Debug:', {
+      netWeight,
+      totalGhat,
+      touch,
+      wastage,
+      fine,
+      formula: `(${touch} + ${wastage}) * (${netWeight} + ${totalGhat}) / 100 = ${fine}`
+    });
 
     // Amount = (Net Weight * Rate) / 1000
     // User said: "calculate sales... based on kilograms not pics"

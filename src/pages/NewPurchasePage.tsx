@@ -89,7 +89,10 @@ export default function NewPurchasePage() {
         const customer = customers.find((c) => c.id === value.customer_id);
         setSelectedCustomer(customer || null);
       }
-      setTimeout(() => calculateValues(form.getValues() as SaleFormData), 0);
+      // Calculate fine when relevant fields change
+      if (name === 'weight' || name === 'bag' || name === 'ghat_per_kg' || name === 'touch' || name === 'wastage') {
+        setTimeout(() => calculateValues(form.getValues() as SaleFormData), 0);
+      }
     });
     return () => {
       if (subscription && typeof subscription.unsubscribe === "function") {
@@ -172,17 +175,31 @@ export default function NewPurchasePage() {
   };
 
   const calculateValues = (data: SaleFormData) => {
-    const netWeight = (data.weight || 0) - (data.bag || 0);
-    const ghatPerKg = data.ghat_per_kg || 0;
-    const touch = data.touch || 0;
-    const wastage = data.wastage || 0;
-    const rate = data.rate || 0;
+    const weight = parseFloat(String(data.weight || 0));
+    const bag = parseFloat(String(data.bag || 0));
+    const ghatPerKg = parseFloat(String(data.ghat_per_kg || 0));
+    const touch = parseFloat(String(data.touch || 0));
+    const wastage = parseFloat(String(data.wastage || 0));
+    const rate = parseFloat(String(data.rate || 0));
+
+    // Net Weight = Weight - Bag
+    const netWeight = weight - bag;
 
     // Total Ghat = (Net Weight × Ghat) / 1000
     const totalGhat = (netWeight * ghatPerKg) / 1000;
 
-    // Fine = (Net Weight + Total Ghat) * Touch / 100
-    const fine = (netWeight + totalGhat) * touch / 100;
+    // Fine = (Touch + Wastage) * (Net Weight + Total Ghat) / 100
+    const fine = (touch + wastage) * (netWeight + totalGhat) / 100;
+    
+    // Debug logging for fine calculation
+    console.log('Fine Calculation Debug:', {
+      netWeight,
+      totalGhat,
+      touch,
+      wastage,
+      fine,
+      formula: `(${touch} + ${wastage}) * (${netWeight} + ${totalGhat}) / 100 = ${fine}`
+    });
 
     // Amount = (Net Weight × Rate) / 1000 (per kg only)
     const amount = (netWeight * rate) / 1000;
