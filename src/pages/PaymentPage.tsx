@@ -70,7 +70,7 @@ export default function PaymentPage() {
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       // Calculate fine when relevant fields change
-      if (name === 'gross' || name === 'purity' || name === 'wast_badi_kg') {
+      if (name === 'gross' || name === 'purity' || name === 'wast_badi_kg' || name === 'rate') {
         calculateFine(value as PaymentFormData);
       }
     });
@@ -136,16 +136,40 @@ export default function PaymentPage() {
     const gross = parseFloat(String(data.gross || 0));
     const purity = parseFloat(String(data.purity || 0));
     const wastage = parseFloat(String(data.wast_badi_kg || 0));
-    // Fine = (Purity + Wastage) * Gross / 100
-    const fine = (purity + wastage) * gross / 100;
+    const rate = parseFloat(String(data.rate || 0));
+    
+    let fine = 0;
+    let amount = 0;
+    
+    // Calculate based on payment type
+    if (data.payment_type === 'fine') {
+      // Fine = (Purity + Wastage) * Gross / 100
+      fine = (purity + wastage) * gross / 100;
+      amount = fine;
+    } else if (data.payment_type === 'rate_cut_fine') {
+      // Rate Cut Fine: Fine = (Purity + Wastage) * Gross / 100, Amount = Rate * Fine / 1000
+      fine = (purity + wastage) * gross / 100;
+      amount = rate * fine / 1000;
+    } else if (data.payment_type === 'rate_cut_amount') {
+      // Rate Cut Amount: Amount = Rate * Gross / 1000, Fine = 0
+      amount = rate * gross / 1000;
+      fine = 0;
+    } else {
+      // Cash, Bank, Roopu: Amount = Rate * Gross / 1000, Fine = 0
+      amount = rate * gross / 1000;
+      fine = 0;
+    }
     
     // Debug logging for fine calculation
     console.log('Payment Fine Calculation Debug:', {
       gross,
       purity,
       wastage,
+      rate,
+      payment_type: data.payment_type,
       fine,
-      formula: `(${purity} + ${wastage}) * ${gross} / 100 = ${fine}`
+      amount,
+      formula: `Payment Type: ${data.payment_type}, Fine: ${fine}, Amount: ${amount}`
     });
     
     setCalculatedFine(fine);

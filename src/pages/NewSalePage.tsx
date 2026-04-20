@@ -90,7 +90,7 @@ export default function NewSalePage() {
         setSelectedCustomer(customer || null);
       }
       // Calculate fine when relevant fields change
-      if (name === 'weight' || name === 'bag' || name === 'ghat_per_kg' || name === 'touch' || name === 'wastage') {
+      if (name === 'weight' || name === 'bag' || name === 'ghat_per_kg' || name === 'touch' || name === 'wastage' || name === 'rate') {
         setTimeout(() => calculateValues(form.getValues() as SaleFormData), 0);
       }
     });
