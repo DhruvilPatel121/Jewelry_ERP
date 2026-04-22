@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -13,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { customersApi, salesApi, itemsApi } from "@/db/api";
-import type { Customer, Item, SaleFormData, Sale } from "@/types";
+import type { Customer, Item, SaleFormData } from "@/types";
 import { ArrowLeft, Loader2, Calculator } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -61,7 +60,9 @@ export default function NewSalePage() {
     fine: 0,
     amount: 0,
     netWeight: 0,
+    openingAmount: 0,
     closingAmount: 0,
+    openingFine: 0,
     closingFine: 0,
   });
 
@@ -88,10 +89,21 @@ export default function NewSalePage() {
       if (name === "customer_id") {
         const customer = customers.find((c) => c.id === value.customer_id);
         setSelectedCustomer(customer || null);
+        
+        // Recalculate opening balance when customer changes
+        setTimeout(() => {
+          (async () => {
+            await calculateValues(form.getValues() as SaleFormData);
+          })();
+        }, 0);
       }
       // Calculate fine when relevant fields change
       if (name === 'weight' || name === 'bag' || name === 'ghat_per_kg' || name === 'touch' || name === 'wastage' || name === 'rate') {
-        setTimeout(() => calculateValues(form.getValues() as SaleFormData), 0);
+        setTimeout(() => {
+          (async () => {
+            await calculateValues(form.getValues() as SaleFormData);
+          })();
+        }, 0);
       }
     });
     return () => {
@@ -110,6 +122,18 @@ export default function NewSalePage() {
       loadSaleData();
     }
   }, [isEdit, editId, customers.length]);
+
+  useEffect(() => {
+    // CRITICAL: Recalculate opening balance IMMEDIATELY when selectedCustomer changes
+    if (selectedCustomer) {
+      console.log('CRITICAL: Customer changed, recalculating opening balance for:', selectedCustomer.name);
+      setTimeout(() => {
+        (async () => {
+          await calculateValues(form.getValues() as SaleFormData);
+        })();
+      }, 0);
+    }
+  }, [selectedCustomer]);
 
   const loadData = async () => {
     try {
@@ -151,20 +175,22 @@ export default function NewSalePage() {
         setSelectedCustomer(customer || null);
         
         // Calculate initial values
-        calculateValues({
-          date: sale.date,
-          customer_id: sale.customer_id,
-          item_name: sale.item_name,
-          weight: sale.weight || 0,
-          bag: sale.bag || 0,
-          net_weight: sale.net_weight || 0,
-          ghat_per_kg: sale.ghat_per_kg || 0,
-          touch: sale.touch || 0,
-          wastage: sale.wastage || 0,
-          pics: sale.pics || 0,
-          rate: sale.rate || 0,
-          remarks: sale.remarks || "",
-        });
+        (async () => {
+          await calculateValues({
+            date: sale.date,
+            customer_id: sale.customer_id,
+            item_name: sale.item_name,
+            weight: sale.weight || 0,
+            bag: sale.bag || 0,
+            net_weight: sale.net_weight || 0,
+            ghat_per_kg: sale.ghat_per_kg || 0,
+            touch: sale.touch || 0,
+            wastage: sale.wastage || 0,
+            pics: sale.pics || 0,
+            rate: sale.rate || 0,
+            remarks: sale.remarks || "",
+          });
+        })();
       }
     } catch (error) {
       console.error("Failed to load sale data:", error);
@@ -174,41 +200,25 @@ export default function NewSalePage() {
     }
   };
 
-  const calculateValues = (data: SaleFormData) => {
+  const calculateValues = async (data: SaleFormData) => {
     const weight = parseFloat(String(data.weight || 0));
     const bag = parseFloat(String(data.bag || 0));
     const ghatPerKg = parseFloat(String(data.ghat_per_kg || 0));
     const touch = parseFloat(String(data.touch || 0));
     const wastage = parseFloat(String(data.wastage || 0));
     const rate = parseFloat(String(data.rate || 0));
-    
-    // Net Weight = Weight - Bag
+
     const netWeight = weight - bag;
-
-    // Total Ghat = (Net Weight * Ghat) / 1000
     const totalGhat = (netWeight * ghatPerKg) / 1000;
-
-    // Fine = (Touch + Wastage) * (Net Weight + Total Ghat) / 100
     const fine = (touch + wastage) * (netWeight + totalGhat) / 100;
-    
-    // Debug logging for fine calculation
-    console.log('Fine Calculation Debug:', {
-      netWeight,
-      totalGhat,
-      touch,
-      wastage,
-      fine,
-      formula: `(${touch} + ${wastage}) * (${netWeight} + ${totalGhat}) / 100 = ${fine}`
-    });
-
-    // Amount = (Net Weight * Rate) / 1000
-    // User said: "calculate sales... based on kilograms not pics"
     const amount = (netWeight * rate) / 1000;
 
-    // Calculate closing balances
+    // UI preview of opening/closing balance.
+    // NOTE: The authoritative opening balance is always computed in the API
+    // from the customer's live closing balance at save time. This preview
+    // uses the customer's current closing_amount which is a good approximation.
     const openingAmount = selectedCustomer?.closing_amount || 0;
     const openingFine = selectedCustomer?.closing_fine || 0;
-
     const closingAmount = openingAmount + amount;
     const closingFine = openingFine + fine;
 
@@ -217,33 +227,29 @@ export default function NewSalePage() {
       fine,
       amount,
       netWeight,
+      openingAmount,
       closingAmount,
+      openingFine,
       closingFine,
     });
-
-    // Update form Net Weight field for display if needed, but be careful of loops
-    // If we rely on derived state for display, we don't need to setValue.
-    // But the form has a field for net_weight.
   };
 
   const onSubmit = async (data: SaleFormData) => {
     try {
       setLoading(true);
+      // Do NOT pass opening_amount/opening_fine here.
+      // The API computes them from the customer's live closing balance at save time.
       const payload = {
         ...data,
         net_weight: (data.weight || 0) - (data.bag || 0),
       };
-      
       if (isEdit && editId) {
-        // Update existing sale
         await salesApi.update(editId, payload);
         toast.success("Sale updated successfully");
       } else {
-        // Create new sale
         await salesApi.create(payload);
         toast.success("Sale added successfully");
       }
-      
       navigate("/");
     } catch (error) {
       console.error(`Failed to ${isEdit ? 'update' : 'create'} sale:`, error);
@@ -317,19 +323,25 @@ export default function NewSalePage() {
                     {selectedCustomer && (
                       <div className="mt-2 p-3 bg-muted rounded-md grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="text-muted-foreground block">
+                          <span className="text-primary/70 block">
                             Opening Balance:
                           </span>
                           <span className="font-semibold text-primary">
-                            ₹{(selectedCustomer.closing_amount || 0).toFixed(2)}
+                            {calculatedValues.openingAmount?.toLocaleString(
+                              "en-IN",
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }
+                            )}
                           </span>
                         </div>
                         <div>
-                          <span className="text-muted-foreground block">
+                          <span className="text-primary/70 block">
                             Opening Fine:
                           </span>
                           <span className="font-semibold text-primary">
-                            {(selectedCustomer.closing_fine || 0).toFixed(3)}g
+                            {calculatedValues.openingFine?.toFixed(3)}g
                           </span>
                         </div>
                       </div>
@@ -418,7 +430,7 @@ export default function NewSalePage() {
               <FormField
                 control={form.control}
                 name="net_weight"
-                render={({ field }) => (
+                render={({ field: _field }) => (
                   <FormItem>
                     <FormLabel>Net Weight (g)</FormLabel>
                     <FormControl>

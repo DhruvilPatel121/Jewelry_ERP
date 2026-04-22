@@ -237,10 +237,14 @@ export const salesApi = {
   async create(formData: SaleFormData): Promise<Sale> {
     const userId = await getCurrentUserId();
     const invoiceNo = await generateInvoiceNo('sale');
+
+    // IMPORTANT: Read customer's current closing balance BEFORE insert.
+    // This is the correct opening balance for this new sale.
     const customer = await customersApi.getById(formData.customer_id);
-    
+    const openingAmount = customer?.closing_amount || 0;
+    const openingFine = customer?.closing_fine || 0;
+
     // Calculate values
-    // Prefer derived net weight: total weight - bag
     const netWeight = (formData.weight || 0) - (formData.bag || 0);
     const ghatPerKg = formData.ghat_per_kg || 0;
     const totalGhat = (netWeight * ghatPerKg) / 1000;
@@ -248,7 +252,6 @@ export const salesApi = {
     const wastage = formData.wastage || 0;
     const fine = (netWeight + totalGhat) * touch / 100;
     const rate = formData.rate || 0;
-    // Amount must be based on kilograms, not pics
     const amount = (netWeight * rate) / 1000;
 
     const { data, error } = await supabase
@@ -261,13 +264,16 @@ export const salesApi = {
         total_ghat: totalGhat,
         fine,
         amount,
+        // Always computed server-side from live customer balance, never from UI state
+        opening_amount: openingAmount,
+        opening_fine: openingFine,
       })
       .select()
       .single();
-    
+
     if (error) throw error;
 
-    // Update customer balances
+    // Update customer running balance after insert
     await customersApi.recalculateBalances(formData.customer_id);
 
     return data;
@@ -295,11 +301,14 @@ export const salesApi = {
     const fine = (netWeight + totalGhat) * touch / 100;
     const amount = (netWeight * rate) / 1000;
 
-    // Update record
+    // Strip opening_amount/opening_fine from the update payload.
+    // These are historical values set at creation time and must never be overwritten.
+    const { opening_amount: _oa, opening_fine: _of, ...safeFormData } = formData as any;
+
     const { data, error } = await supabase
       .from('sales')
       .update({
-        ...formData,
+        ...safeFormData,
         net_weight: netWeight,
         total_ghat: totalGhat,
         fine,
@@ -310,7 +319,6 @@ export const salesApi = {
       .single();
     if (error) throw error;
 
-    // Adjust customer balances by delta
     await customersApi.recalculateBalances(existing.customer_id);
 
     return data;
@@ -397,8 +405,13 @@ export const purchasesApi = {
   async create(formData: PurchaseFormData): Promise<Purchase> {
     const userId = await getCurrentUserId();
     const invoiceNo = await generateInvoiceNo('purchase');
+
+    // IMPORTANT: Read customer's current closing balance BEFORE insert.
+    // This is the correct opening balance for this new purchase.
     const customer = await customersApi.getById(formData.customer_id);
-    
+    const openingAmount = customer?.closing_amount || 0;
+    const openingFine = customer?.closing_fine || 0;
+
     // Calculate values
     const netWeight = (formData.weight || 0) - (formData.bag || 0);
     const ghatPerKg = formData.ghat_per_kg || 0;
@@ -419,13 +432,16 @@ export const purchasesApi = {
         total_ghat: totalGhat,
         fine,
         amount,
+        // Always computed server-side from live customer balance, never from UI state
+        opening_amount: openingAmount,
+        opening_fine: openingFine,
       })
       .select()
       .single();
-    
+
     if (error) throw error;
 
-    // Update customer balances (negative for purchases)
+    // Update customer running balance after insert
     await customersApi.recalculateBalances(formData.customer_id);
 
     return data;
@@ -451,10 +467,14 @@ export const purchasesApi = {
     const fine = (netWeight + totalGhat) * touch / 100;
     const amount = (netWeight * rate) / 1000;
 
+    // Strip opening_amount/opening_fine from the update payload.
+    // These are historical values set at creation time and must never be overwritten.
+    const { opening_amount: _oa, opening_fine: _of, ...safeFormData } = formData as any;
+
     const { data, error } = await supabase
       .from('purchases')
       .update({
-        ...formData,
+        ...safeFormData,
         net_weight: netWeight,
         total_ghat: totalGhat,
         fine,
@@ -552,13 +572,17 @@ export const paymentsApi = {
   async create(formData: PaymentFormData): Promise<Payment> {
     const userId = await getCurrentUserId();
     const invoiceNo = await generateInvoiceNo('payment');
-    
+
+    // IMPORTANT: Read customer's current closing balance BEFORE insert.
+    // This is the correct opening balance for this payment/receipt.
+    const customer = await customersApi.getById(formData.customer_id);
+    const openingAmount = customer?.closing_amount || 0;
+    const openingFine = customer?.closing_fine || 0;
+
     // Calculate fine if gross and purity provided
     const gross = formData.gross || 0;
     const purity = formData.purity || 0;
     const fine = gross * purity / 100;
-    const rate = formData.rate || 0;
-    const rateCutFine = (fine * rate) / 1000;
 
     const { data, error } = await supabase
       .from('payments')
@@ -567,13 +591,16 @@ export const paymentsApi = {
         invoice_no: invoiceNo,
         ...formData,
         fine,
+        // Store snapshot of opening balance at time of transaction
+        opening_amount: openingAmount,
+        opening_fine: openingFine,
       })
       .select()
       .single();
-    
+
     if (error) throw error;
 
-    // Update customer balances based on transaction type
+    // Update customer running balance after insert
     await customersApi.recalculateBalances(formData.customer_id);
 
     return data;
@@ -592,10 +619,13 @@ export const paymentsApi = {
     const purity = (formData.purity ?? existing.purity ?? 0) as number;
     const fine = gross * purity / 100;
 
+    // Strip opening_amount/opening_fine - must never be overwritten on edit
+    const { opening_amount: _oa, opening_fine: _of, ...safeFormData } = formData as any;
+
     const { data, error } = await supabase
       .from('payments')
       .update({
-        ...formData,
+        ...safeFormData,
         fine,
       })
       .eq('id', id)
@@ -603,7 +633,6 @@ export const paymentsApi = {
       .single();
     if (error) throw error;
 
-    // Balance adjustment
     await customersApi.recalculateBalances(existing.customer_id);
 
     return data;

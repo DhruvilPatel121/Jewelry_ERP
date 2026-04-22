@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { customersApi, purchasesApi, itemsApi } from "@/db/api";
-import type { Customer, Item, SaleFormData, Purchase } from "@/types";
+import type { Customer, Item, SaleFormData } from "@/types";
 import { ArrowLeft, Loader2, Calculator } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -61,7 +61,9 @@ export default function NewPurchasePage() {
     fine: 0,
     amount: 0,
     netWeight: 0,
+    openingAmount: 0,
     closingAmount: 0,
+    openingFine: 0,
     closingFine: 0,
   });
 
@@ -91,7 +93,11 @@ export default function NewPurchasePage() {
       }
       // Calculate fine when relevant fields change
       if (name === 'weight' || name === 'bag' || name === 'ghat_per_kg' || name === 'touch' || name === 'wastage' || name === 'rate') {
-        setTimeout(() => calculateValues(form.getValues() as SaleFormData), 0);
+        setTimeout(() => {
+          (async () => {
+            await calculateValues(form.getValues() as SaleFormData);
+          })();
+        }, 0);
       }
     });
     return () => {
@@ -151,20 +157,22 @@ export default function NewPurchasePage() {
         setSelectedCustomer(customer || null);
         
         // Calculate initial values
-        calculateValues({
-          date: purchase.date,
-          customer_id: purchase.customer_id,
-          item_name: purchase.item_name,
-          weight: purchase.weight || 0,
-          bag: purchase.bag || 0,
-          net_weight: purchase.net_weight || 0,
-          ghat_per_kg: purchase.ghat_per_kg || 0,
-          touch: purchase.touch || 0,
-          wastage: purchase.wastage || 0,
-          pics: purchase.pics || 0,
-          rate: purchase.rate || 0,
-          remarks: purchase.remarks || "",
-        });
+        (async () => {
+          await calculateValues({
+            date: purchase.date,
+            customer_id: purchase.customer_id,
+            item_name: purchase.item_name,
+            weight: purchase.weight || 0,
+            bag: purchase.bag || 0,
+            net_weight: purchase.net_weight || 0,
+            ghat_per_kg: purchase.ghat_per_kg || 0,
+            touch: purchase.touch || 0,
+            wastage: purchase.wastage || 0,
+            pics: purchase.pics || 0,
+            rate: purchase.rate || 0,
+            remarks: purchase.remarks || "",
+          });
+        })();
       }
     } catch (error) {
       console.error("Failed to load purchase data:", error);
@@ -174,7 +182,7 @@ export default function NewPurchasePage() {
     }
   };
 
-  const calculateValues = (data: SaleFormData) => {
+  const calculateValues = async (data: SaleFormData) => {
     const weight = parseFloat(String(data.weight || 0));
     const bag = parseFloat(String(data.bag || 0));
     const ghatPerKg = parseFloat(String(data.ghat_per_kg || 0));
@@ -182,31 +190,17 @@ export default function NewPurchasePage() {
     const wastage = parseFloat(String(data.wastage || 0));
     const rate = parseFloat(String(data.rate || 0));
 
-    // Net Weight = Weight - Bag
     const netWeight = weight - bag;
-
-    // Total Ghat = (Net Weight × Ghat) / 1000
     const totalGhat = (netWeight * ghatPerKg) / 1000;
-
-    // Fine = (Touch + Wastage) * (Net Weight + Total Ghat) / 100
     const fine = (touch + wastage) * (netWeight + totalGhat) / 100;
-    
-    // Debug logging for fine calculation
-    console.log('Fine Calculation Debug:', {
-      netWeight,
-      totalGhat,
-      touch,
-      wastage,
-      fine,
-      formula: `(${touch} + ${wastage}) * (${netWeight} + ${totalGhat}) / 100 = ${fine}`
-    });
-
-    // Amount = (Net Weight × Rate) / 1000 (per kg only)
     const amount = (netWeight * rate) / 1000;
 
+    // UI preview of opening/closing balance.
+    // The authoritative opening balance is computed in the API from customer's live
+    // closing balance at save time. For purchases, balance DECREASES.
     const openingAmount = selectedCustomer?.closing_amount || 0;
     const openingFine = selectedCustomer?.closing_fine || 0;
-    const closingAmount = openingAmount - amount; // purchases decrease balance
+    const closingAmount = openingAmount - amount;
     const closingFine = openingFine - fine;
 
     setCalculatedValues({
@@ -214,7 +208,9 @@ export default function NewPurchasePage() {
       fine,
       amount,
       netWeight,
+      openingAmount,
       closingAmount,
+      openingFine,
       closingFine,
     });
   };
@@ -222,21 +218,19 @@ export default function NewPurchasePage() {
   const onSubmit = async (data: SaleFormData) => {
     try {
       setLoading(true);
+      // Do NOT pass opening_amount/opening_fine here.
+      // The API computes them from the customer's live closing balance at save time.
       const payload = {
         ...data,
         net_weight: (data.weight || 0) - (data.bag || 0),
       };
-      
       if (isEdit && editId) {
-        // Update existing purchase
         await purchasesApi.update(editId, payload);
         toast.success("Purchase updated successfully");
       } else {
-        // Create new purchase
         await purchasesApi.create(payload);
         toast.success("Purchase added successfully");
       }
-      
       navigate("/");
     } catch (error) {
       console.error(`Failed to ${isEdit ? 'update' : 'create'} purchase:`, error);
@@ -314,7 +308,13 @@ export default function NewPurchasePage() {
                             Opening Balance:
                           </span>
                           <span className="font-semibold text-primary">
-                            ₹{(selectedCustomer.closing_amount || 0).toFixed(2)}
+                            {calculatedValues.openingAmount?.toLocaleString(
+                              "en-IN",
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }
+                            )}
                           </span>
                         </div>
                         <div>
@@ -322,7 +322,7 @@ export default function NewPurchasePage() {
                             Opening Fine:
                           </span>
                           <span className="font-semibold text-primary">
-                            {(selectedCustomer.closing_fine || 0).toFixed(3)}g
+                            {calculatedValues.openingFine?.toFixed(3)}g
                           </span>
                         </div>
                       </div>

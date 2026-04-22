@@ -106,6 +106,8 @@ export interface Payment {
   rate: number | null;
   amount: number | null;
   remarks: string | null;
+  opening_amount: number | null;
+  opening_fine: number | null;
   created_at: string;
   updated_at: string;
 }

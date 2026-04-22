@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { customersApi, paymentsApi } from '@/db/api';
-import type { Customer, PaymentFormData, PaymentType, TransactionType, Payment } from '@/types';
+import type { Customer, PaymentFormData } from '@/types';
 import { ArrowLeft, Loader2, Calculator } from 'lucide-react';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
@@ -39,7 +39,14 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEdit);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [calculatedFine, setCalculatedFine] = useState(0);
+  const [calculatedValues, setCalculatedValues] = useState({
+    openingAmount: 0,
+    closingAmount: 0,
+    openingFine: 0,
+    closingFine: 0,
+  });
 
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
@@ -71,7 +78,7 @@ export default function PaymentPage() {
     const subscription = form.watch((value, { name }) => {
       // Calculate fine when relevant fields change
       if (name === 'gross' || name === 'purity' || name === 'wast_badi_kg' || name === 'rate') {
-        calculateFine(value as PaymentFormData);
+        calculateFine(value as PaymentFormData, selectedCustomer);
       }
     });
     return () => {
@@ -79,7 +86,7 @@ export default function PaymentPage() {
         subscription.unsubscribe();
       }
     };
-  }, [form, calculateFine]);
+  }, [form, selectedCustomer]);
 
   const loadCustomers = async () => {
     try {
@@ -90,6 +97,7 @@ export default function PaymentPage() {
     }
   };
 
+  
   const loadPaymentData = async () => {
     if (!editId) return;
     
@@ -110,6 +118,10 @@ export default function PaymentPage() {
           remarks: payment.remarks || '',
         });
         
+        // Set selected customer
+        const customer = customers.find((c) => c.id === payment.customer_id);
+        setSelectedCustomer(customer || null);
+        
         // Calculate initial fine
         calculateFine({
           date: payment.date,
@@ -121,8 +133,8 @@ export default function PaymentPage() {
           wast_badi_kg: payment.wast_badi_kg || 0,
           rate: payment.rate || 0,
           amount: payment.amount || 0,
-          remarks: payment.remarks || '',
-        });
+          remarks: payment.remarks || "",
+        }, customer);
       }
     } catch (error) {
       console.error('Failed to load payment data:', error);
@@ -132,7 +144,7 @@ export default function PaymentPage() {
     }
   };
 
-  const calculateFine = (data: PaymentFormData) => {
+  const calculateFine = (data: PaymentFormData, customer: Customer | null) => {
     const gross = parseFloat(String(data.gross || 0));
     const purity = parseFloat(String(data.purity || 0));
     const wastage = parseFloat(String(data.wast_badi_kg || 0));
@@ -160,19 +172,86 @@ export default function PaymentPage() {
       fine = 0;
     }
     
-    // Debug logging for fine calculation
-    console.log('Payment Fine Calculation Debug:', {
-      gross,
-      purity,
-      wastage,
-      rate,
-      payment_type: data.payment_type,
-      fine,
-      amount,
-      formula: `Payment Type: ${data.payment_type}, Fine: ${fine}, Amount: ${amount}`
+    // Calculate opening and closing balances
+    // Opening balance should be accumulated total of all previous unpaid transactions
+    // For first transaction: opening balance = 0
+    // For subsequent transactions: opening balance = accumulated total of previous transactions
+    let openingAmount = 0;
+    let openingFine = 0;
+    
+    if (customer) {
+      try {
+        console.log('Calculating opening balance for customer:', customer.name);
+        
+        // Use customer's current closing balance as opening balance
+        // This ensures opening balance is accumulated total of all previous transactions
+        openingAmount = customer.closing_amount || 0;
+        openingFine = customer.closing_fine || 0;
+        
+        console.log('SUCCESS: Payment Opening Balance Calculated:', {
+          customerName: customer.name,
+          customerClosingAmount: customer.closing_amount,
+          customerClosingFine: customer.closing_fine,
+          calculatedOpeningAmount: openingAmount,
+          calculatedOpeningFine: openingFine,
+          isFirstTransaction: openingAmount === 0 && openingFine === 0,
+          transactionType: data.transaction_type,
+          paymentType: data.payment_type,
+          message: `Opening balance is customer's current closing balance: ${openingAmount}/${openingFine}`
+        });
+      } catch (error) {
+        console.error('ERROR calculating opening balance:', error);
+        openingAmount = 0;
+        openingFine = 0;
+      }
+    }
+    
+    let closingAmount = openingAmount;
+    let closingFine = openingFine;
+    
+    // Adjust balances based on transaction type
+    if (data.transaction_type === 'payment') {
+      // Payment decreases balance
+      closingAmount = openingAmount - amount;
+      closingFine = openingFine - fine;
+    } else {
+      // Receipt increases balance
+      closingAmount = openingAmount + amount;
+      closingFine = openingFine + fine;
+    }
+    
+    // Debug logging for balance calculation
+    console.log('Final Payment Balance Calculation Debug:', {
+      selectedCustomer: customer?.name,
+      calculatedOpeningAmount: openingAmount,
+      calculatedOpeningFine: openingFine,
+      currentAmount: amount,
+      currentFine: fine,
+      calculatedClosingAmount: closingAmount,
+      calculatedClosingFine: closingFine,
+      transactionType: data.transaction_type,
+      paymentType: data.payment_type,
+      isFirstTransaction: openingAmount === 0 && openingFine === 0,
+      calculationFormula: {
+        closingAmount: data.transaction_type === 'payment' 
+          ? `${openingAmount} (opening) - ${amount} (current) = ${closingAmount}`
+          : `${openingAmount} (opening) + ${amount} (current) = ${closingAmount}`,
+        closingFine: data.transaction_type === 'payment'
+          ? `${openingFine} (opening) - ${fine} (current) = ${closingFine}`
+          : `${openingFine} (opening) + ${fine} (current) = ${closingFine}`
+      }
     });
     
-    setCalculatedFine(fine);
+    // Update calculated values
+    setCalculatedValues({
+      openingAmount, // Show actual opening balance (0 for new customer, accumulated for existing)
+      closingAmount, // Show updated closing balance (opening +/- current transaction)
+      openingFine,   // Show actual opening fine balance (0 for new customer, accumulated for existing)
+      closingFine,   // Show updated closing fine balance (opening +/- current fine)
+    });
+    
+    // Update calculated fine for display
+    setCalculatedFine(parseFloat(String(fine)));
   };
 
   const getBackUrl = () => {
@@ -266,6 +345,32 @@ export default function PaymentPage() {
                       </SelectContent>
                     </Select>
                     <FormMessage />
+                    {form.watch('customer_id') && (
+                      <div className="mt-2 p-3 bg-muted rounded-md grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-primary/70 block">
+                            Opening Balance:
+                          </span>
+                          <span className="font-semibold text-primary">
+                            {calculatedValues.openingAmount?.toLocaleString(
+                              "en-IN",
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }
+                            )}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-primary/70 block">
+                            Opening Fine:
+                          </span>
+                          <span className="font-semibold text-primary">
+                            {calculatedValues.openingFine?.toFixed(3)}g
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </FormItem>
                 )}
               />

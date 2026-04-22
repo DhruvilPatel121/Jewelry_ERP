@@ -41,7 +41,6 @@ export default function PaymentInvoicePage() {
   useEffect(() => {
     const download = async () => {
       if (payment && company && !autoDownloaded) {
-        // Add a small delay to ensure all elements are rendered
         await new Promise(resolve => setTimeout(resolve, 1000));
         await ensurePdfLibsLoaded();
         const el = document.getElementById("invoice-root");
@@ -63,7 +62,6 @@ export default function PaymentInvoicePage() {
     }
   };
 
-  // Format date as DD-MM-YYYY
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -75,10 +73,38 @@ export default function PaymentInvoicePage() {
 
   if (!payment) return <div className="p-6">Loading...</div>;
 
-  const openingAmount = payment.customer?.closing_amount || 0;
-  const openingFine = payment.customer?.closing_fine || 0;
-  const closingAmount = openingAmount + (payment.amount || 0);
-  const closingFine = openingFine + (payment.fine || 0);
+  // Use the opening balance stored AT THE TIME this payment was created.
+  // If opening_amount is not yet stored (older records), fall back to reverse calculation.
+  let openingAmount: number;
+  let openingFine: number;
+
+  if (payment.opening_amount !== null && payment.opening_amount !== undefined) {
+    // Fresh records: use stored snapshot
+    openingAmount = payment.opening_amount;
+    openingFine = payment.opening_fine || 0;
+  } else {
+    // Legacy records (created before this fix): reverse-derive from current closing balance
+    const currentClosing = payment.customer?.closing_amount || 0;
+    const currentClosingFine = payment.customer?.closing_fine || 0;
+    if (payment.transaction_type === 'payment') {
+      openingAmount = currentClosing + (payment.amount || 0);
+      openingFine = currentClosingFine + (payment.fine || 0);
+    } else {
+      openingAmount = currentClosing - (payment.amount || 0);
+      openingFine = currentClosingFine - (payment.fine || 0);
+    }
+  }
+
+  // Closing balance = opening ± this transaction
+  let closingAmount: number;
+  let closingFine: number;
+  if (payment.transaction_type === 'payment') {
+    closingAmount = openingAmount - (payment.amount || 0);
+    closingFine = openingFine - (payment.fine || 0);
+  } else {
+    closingAmount = openingAmount + (payment.amount || 0);
+    closingFine = openingFine + (payment.fine || 0);
+  }
 
   return (
     <div className="p-6 print:p-0">
@@ -123,8 +149,8 @@ export default function PaymentInvoicePage() {
             </div>
             <div className="inline-block">
               <span className={`px-4 py-2 border rounded font-bold text-sm ${
-                payment.transaction_type === 'receipt' 
-                  ? 'bg-green-100 text-green-800 border-green-300' 
+                payment.transaction_type === 'receipt'
+                  ? 'bg-green-100 text-green-800 border-green-300'
                   : 'bg-red-100 text-red-800 border-red-300'
               }`}>
                 {payment.transaction_type === 'receipt' ? 'RECEIPT' : 'PAYMENT'}
@@ -193,33 +219,45 @@ export default function PaymentInvoicePage() {
           </div>
         )}
 
-        <div className="mt-6 p-4 bg-gray-50 border">
-          <div className="flex justify-between">
-            <div>
-              <p className="text-sm">
-                <span className="font-semibold">Opening Amount:</span> ₹
-                {openingAmount.toLocaleString("en-IN", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </p>
-              <p className="text-sm mt-1">
-                <span className="font-semibold">Opening Fine:</span>{" "}
-                {(openingFine || 0).toFixed(3)}g
-              </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-6">
+          <div>
+            <div className="border p-2 sm:p-3">
+              <p className="font-semibold mb-2 text-sm sm:text-base">Opening Balance</p>
+              <div className="flex justify-between text-sm sm:text-base">
+                <span>Amount</span>
+                <span>
+                  ₹
+                  {openingAmount.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  Cr.
+                </span>
+              </div>
+              <div className="flex justify-between text-sm sm:text-base">
+                <span>Fine</span>
+                <span>{openingFine.toFixed(3)}g Cr.</span>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm">
-                <span className="font-semibold">Closing Amount:</span> ₹
-                {closingAmount.toLocaleString("en-IN", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </p>
-              <p className="text-sm mt-1">
-                <span className="font-semibold">Closing Fine:</span>{" "}
-                {(closingFine || 0).toFixed(3)}g
-              </p>
+          </div>
+          <div>
+            <div className="border p-2 sm:p-3">
+              <p className="font-semibold mb-2 text-sm sm:text-base">Closing Balance</p>
+              <div className="flex justify-between text-sm sm:text-base">
+                <span>Amount</span>
+                <span>
+                  ₹
+                  {closingAmount.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  Cr.
+                </span>
+              </div>
+              <div className="flex justify-between text-sm sm:text-base">
+                <span>Fine</span>
+                <span>{closingFine.toFixed(3)}g Cr.</span>
+              </div>
             </div>
           </div>
         </div>

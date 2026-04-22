@@ -75,8 +75,8 @@ export default function PurchaseInvoicePage() {
 
   if (!purchase) return <div className="p-6">Loading...</div>;
 
-  const openingAmount = purchase.customer?.closing_amount || 0;
-  const openingFine = purchase.customer?.closing_fine || 0;
+  const openingAmount = purchase.opening_amount || 0;
+  const openingFine = purchase.opening_fine || 0;
   const closingAmount = openingAmount - (purchase.amount || 0);
   const closingFine = openingFine - (purchase.fine || 0);
 

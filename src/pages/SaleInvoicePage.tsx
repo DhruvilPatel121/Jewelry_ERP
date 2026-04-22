@@ -75,10 +75,35 @@ export default function SaleInvoicePage() {
 
   if (!sale) return <div className="p-6">Loading...</div>;
 
-  const openingAmount = sale.customer?.closing_amount || 0;
-  const openingFine = sale.customer?.closing_fine || 0;
+  // CRITICAL: Log the sale data retrieved from database
+  console.log('CRITICAL: Sale data from database:', {
+    saleId: sale.id,
+    customerId: sale.customer_id,
+    date: sale.date,
+    amount: sale.amount,
+    fine: sale.fine,
+    opening_amount: sale.opening_amount,
+    opening_fine: sale.opening_fine,
+    customerName: sale.customer?.name
+  });
+
+  const openingAmount = sale.opening_amount || 0;
+  const openingFine = sale.opening_fine || 0;
   const closingAmount = openingAmount + (sale.amount || 0);
   const closingFine = openingFine + (sale.fine || 0);
+
+  console.log('CRITICAL: PDF Balance Calculation:', {
+    openingAmount,
+    openingFine,
+    currentAmount: sale.amount,
+    currentFine: sale.fine,
+    calculatedClosingAmount: closingAmount,
+    calculatedClosingFine: closingFine,
+    formula: {
+      closingAmount: `${openingAmount} + ${sale.amount} = ${closingAmount}`,
+      closingFine: `${openingFine} + ${sale.fine} = ${closingFine}`
+    }
+  });
 
   return (
     <div className="p-6 print:p-0">
